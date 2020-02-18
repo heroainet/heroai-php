@@ -1,0 +1,12 @@
+{
+    "name": "zeroainet/tinyphp",
+    "description": "a framework for php",
+    "type" : "project",
+    "author" : {
+    	"name" : "zeroai",
+    	"email" : "zeroainet@qq.com"
+    },
+    "autoload":{
+    "psr-4" : { "Tiny\\":"src/"}
+    }
+}

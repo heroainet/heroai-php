@@ -2,11 +2,11 @@
 namespace App\Controller\Console;
 
 
-
 class Main extends \Tiny\Mvc\Controller\ConsoleController
 {
     public function indexAction()
     {
+        echo "aaaa";
         return;
         //配置使用
         print_r($this->config['def.a.b']);

@@ -1,13 +1,13 @@
-<?php 
+<?php
 /**
  * @Copyright (C), 2013-, King.
  * @Name ConsoleApplication.php
  * @Author King
- * @Version Beta 1.0 
+ * @Version Beta 1.0
  * @Date 2017年4月5日下午11:30:52
  * @Desc
- * @Class List 
- * @Function List 
+ * @Class List
+ * @Function List
  * @History King 2017年4月5日下午11:30:52 0 第一次建立该文件
  *               King 2017年4月5日下午11:30:52 1 上午修改
  */
@@ -32,7 +32,7 @@ class ConsoleApplication extends ApplicationBase
      * @var Daemon
      */
     protected $_daemon;
-    
+
     /**
      * 设置守护进程实例
      *
@@ -43,7 +43,7 @@ class ConsoleApplication extends ApplicationBase
     {
         $this->_daemon = $daemon;
     }
-    
+
     /**
      * 运行
      *
@@ -61,7 +61,7 @@ class ConsoleApplication extends ApplicationBase
         }
         return parent::run();
     }
-    
+
     /**
      * 初始化请求实例
      * @param void
@@ -72,7 +72,7 @@ class ConsoleApplication extends ApplicationBase
         $this->request = ConsoleRequest::getInstance();
         parent::_initRequest();
     }
-    
+
     /**
      * 初始化响应实例
      * @param void
@@ -82,7 +82,7 @@ class ConsoleApplication extends ApplicationBase
     {
         $this->response = ConsoleResponse::getInstance();
     }
-    
+
     /**
      * 守护进程模式
      *
