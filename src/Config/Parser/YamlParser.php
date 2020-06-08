@@ -35,7 +35,11 @@ class YamlParser implements IParser
     public function parse($fpath)
     {
         $contents = file_get_contents($fpath);
-        $data = yaml_parse($contents);
+        $data = '';
+        if (function_exists('yaml_parse'))
+        {
+            $data = yaml_parse($contents);
+        }
         return $data;
     }
 }

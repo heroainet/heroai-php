@@ -1,4 +1,4 @@
-<?php 
+<?php
 
 if ($env['RUNTIME_MODE'] == $env['RUNTIME_MODE_CONSOLE'])
 {
@@ -10,7 +10,7 @@ if ($env['RUNTIME_MODE'] == $env['RUNTIME_MODE_CONSOLE'])
     if (is_array($datamessage))
     {
         $sqlSource = '';
-        $time=0;       
+        $time=0;
         foreach ($datamessage as $key => $value)
         {
             $sqlSource .= $value['engine'] . ':' .   " SQL TIME: "  . $value['time'] . "S\n" . $value['sql'] . "\n" ;
@@ -19,13 +19,12 @@ if ($env['RUNTIME_MODE'] == $env['RUNTIME_MODE_CONSOLE'])
         echo $sqlSource . "\n";
         echo "sql exec:" . $time . "\n";
     }
-    
+
     if (is_array($debugExceptions) && !empty($debugExceptions))
     {
-        echo "Exception:\n";
         foreach ($debugExceptions as $e)
         {
-            echo $e['message'] . ' In ' . $e['file'] . ' on Line ' . $e['line'] . "\n";   
+            echo $e['handler'] .":\n  " . $e['message'] . "\n    In " . $e['file'] . ' on Line ' . $e['line'] . "\n";
         }
     }
 die;
@@ -181,7 +180,7 @@ html,body {
 }
 
 .debug_flexMenu .cont_selected {
-	
+
 }
 
 .debug_flexMenu p {
@@ -231,7 +230,7 @@ if (is_array($datamessage))
  <?php
 	$controller = $request->getController();
 	$action = $request->getAction();
-	
+
 	echo '<p><span class="debug_Green">当前路径: </span>' . $request->rawUrl . '</p>';
 	echo '<p><span class="debug_Green">来源路径: </span>' . $request->urlReferrer . '</p>';
 	echo '<p><span class="debug_Green">控制器: </span>' . $controller . '</p>';
@@ -240,7 +239,7 @@ if (is_array($datamessage))
     </div>
 		</div>
 
-		
+
 		<div onclick="__Debug.doDown('debug_SqlHelper', this)">
 			<h4>
 				<span style="float: left;">

@@ -127,6 +127,10 @@ class Builder
      */
     public function __construct(array $config)
     {
+        if (ini_get('phar.readonly'))
+        {
+            throw new BuilderException('creating archive "zeroai-demo.phar" disabled by the php.ini setting phar.readonly,This setting can only be unset in php.ini due to security reasons.');
+        }
         $this->_config = $config;
         // 应用程序的properties
         $this->_properties = $this->_config['properties'];

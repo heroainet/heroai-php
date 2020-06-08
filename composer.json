@@ -2,6 +2,9 @@
     "name": "zeroainet/zeroai-php",
     "description": "a framework for php",
     "type" : "project",
+    "require" :{
+    	"php" : ">= 7.0.0"
+    },
     "author" : {
     	"name" : "zeroai",
     	"email" : "zeroainet@qq.com"
