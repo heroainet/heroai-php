@@ -1,43 +1,46 @@
 <?php
 /**
- * @Copyright (C), 2013-, King.
- * @Name Gc.php
- * @Author King
- * @Version 1.0 
+ *
+ * @copyright (C), 2013-, King.
+ * @name Gc.php
+ * @author King
+ * @version 1.0
  * @Date: 2013-11-26上午06:47:05
  * @Description 垃圾回收控制类
- * @Class List 
- * @Function 
- * @History <author> <time> <version > <desc> 
- king 2013-11-26上午06:47:05  1.0  第一次建立该文件
+ * @Class List
+ *        1.GC GC回收控制函数
+ * @History <author> <time> <version > <desc>
+ *          king 2013-11-26上午06:47:05 1.0 第一次建立该文件
+ *          King 2020年02月19日下午15:44:00 stable 1.0.01 审定稳定版本
  */
-namespace Tiny\Runtime;
+namespace ZeroAI\Runtime;
 
 /**
  * 垃圾回收控制类
- * 
- * @package Tiny
+ *
+ * @package ZeroAI.Runtime
  * @since 2013-11-26上午06:47:31
- * @final 2013-11-26上午06:47:31
+ * @final 2020年02月19日下午15:44:00 King 审定
  */
 final class Gc
 {
 
     /**
      * 强制收集所有现存的垃圾循环周期。
-     * 
-     * @param void
+     *
      * @return int
      */
     public static function collect()
     {
-        return gc_collect_cycles();
+        if (gc_enabled())
+        {
+            return gc_collect_cycles();
+        }
     }
 
     /**
      * 激活循环引用收集器
-     * 
-     * @param void
+     *
      * @return void
      */
     public static function enable()
@@ -47,8 +50,7 @@ final class Gc
 
     /**
      * 是否有开启垃圾循环引用收集器
-     * 
-     * @param void
+     *
      * @return bool
      */
     public static function isEnable()
@@ -58,13 +60,22 @@ final class Gc
 
     /**
      * 停用循环引用收集器。
-     * 
-     * @param void
+     *
      * @return void
      */
     public static function disable()
     {
         return gc_disable();
+    }
+
+    /**
+     * 清理zend内存管理的内存管理
+     *
+     * @return int
+     */
+    public static function clear()
+    {
+        return gc_mem_caches();
     }
 }
 ?>

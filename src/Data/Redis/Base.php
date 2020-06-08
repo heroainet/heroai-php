@@ -1,23 +1,27 @@
 <?php
 /**
- * @Copyright (C), 2013-, King.
- * @Name Base.php
- * @Author King
- * @Version 1.0
+ *
+ * @copyright (C), 2013-, King.
+ * @name Base.php
+ * @author King
+ * @version 1.0
  * @Date: 2013-11-30上午04:28:01
  * @Description Redis的数据结构基类
  * @Class List
- * @Function
+ *        1. Base redis操作数据结构的基类
+ *
  * @History <author> <time> <version > <desc>
- king 2013-11-30上午04:28:01  1.0  第一次建立该文件
+ *          king 2013-11-30上午04:28:01 1.0 第一次建立该文件
+ *          King 2020年03月5日23:36:00 stable 1.0.01 审定稳定版本
  */
-namespace Tiny\Data\Redis;
+namespace ZeroAI\Data\Redis;
 
-use Tiny\Data\DataException;
+use ZeroAI\Data\RedisException;
+
 /**
  * Redis的数据结构基类
- * 
- * @package Tiny.Data.Redis
+ *
+ * @package ZeroAI.Data.Redis
  * @since 2013-11-30上午05:20:21
  * @final 2013-11-30上午05:20:21
  */
@@ -26,86 +30,87 @@ abstract class Base
 
     /**
      * 字符类型
-     * 
+     *
      * @var string
      */
     const TYPE_STRING = \Redis::REDIS_STRING;
 
     /**
      * SET类型
-     * 
+     *
      * @var string
      */
     const TYPE_SET = \Redis::REDIS_SET;
 
     /**
      * LIST类型
-     * 
+     *
      * @var string
-     * 
+     *
      */
     const TYPE_LIST = \Redis::REDIS_LIST;
 
     /**
      * ZSET类型
-     * 
+     *
      * @var string
      */
     const TYPE_ZSET = \Redis::REDIS_ZSET;
 
     /**
      * HASH类型
-     * 
+     *
      * @var string
      */
     const TYPE_HASH = \Redis::REDIS_HASH;
 
     /**
      * 未知类型
-     * 
+     *
      * @var string
      */
     const TYPE_NOT_FOUND = \Redis::REDIS_NOT_FOUND;
 
     /**
      * redis操作实例
-     * 
+     *
      * @var \Redis
      */
-    protected $_redis = null;
+    protected $_redis = NULL;
 
     /**
      * 操作键名称
-     * 
+     *
      * @var string
      */
     protected $_key = '';
 
     /**
      * 构造函数
-     * 
-     * @param \Redis $redis redis连接实例
-     * @param string $key redis的操作键名称
+     *
+     * @param \Redis $redis
+     *        redis连接实例
+     * @param string $key
+     *        redis的操作键名称
      * @return void
      */
     public function __construct($redis, $key)
     {
         $this->_redis = $redis;
-        $this->_key = (string) $key;
-        if (is_null($this->_redis))
+        $this->_key = (string)$key;
+        if (!$redis instanceof \Redis || !$redis instanceof \RedisArray)
         {
-            throw new DataException('初始化Redis结构失败:Redis实例无效');
+            throw new RedisException(sprintf('Failed to create %s from redis: the class is not an instance of  \Redis or \RedisArray', __CLASS__));
         }
         if ('' == $key)
         {
-            throw new DataException('初始化Redis结构失败:key无效');
+            throw new RedisException(sprintf('Failed to create %s from redis: key is null', __CLASS__));
         }
     }
 
     /**
      * 删除
-     * 
-     * @param void
+     *
      * @return bool
      */
     public function delete()
@@ -115,8 +120,7 @@ abstract class Base
 
     /**
      * 是否存在该键
-     * 
-     * @param void
+     *
      * @return bool
      */
     public function exists()
@@ -126,19 +130,21 @@ abstract class Base
 
     /**
      * 设置过期时间
-     * 
-     * @param int $timeout 过期秒数
+     *
+     * @param int $time
+     *        过期秒数
      * @return bool
      */
-    public function expire($timeout = 0)
+    public function expire($time = 0)
     {
-        return $this->_redis->expire($this->_key, $timeout);
+        return $this->_redis->expire($this->_key, $time);
     }
 
     /**
      * 设置一个过期的时间戳
-     * 
-     * @param int $timeStamp 时间戳
+     *
+     * @param int $timeStamp
+     *        时间戳
      * @return bool
      */
     public function expireAt($timeStamp)
@@ -148,8 +154,7 @@ abstract class Base
 
     /**
      * 返回存活时间
-     * 
-     * @param void
+     *
      * @return int
      */
     public function ttl()
@@ -159,8 +164,7 @@ abstract class Base
 
     /**
      * 返回键值类型
-     * 
-     * @param void
+     *
      * @return string
      */
     public function type()

@@ -1,24 +1,26 @@
 <?php
 /**
- * @Copyright (C), 2013-, King.
- * @Name Logger.php
- * @Author King
- * @Version 1.0 
+ *
+ * @copyright (C), 2013-, King.
+ * @name Logger.php
+ * @author King
+ * @version 1.0
  * @Date: 2013-12-10上午02:27:22
  * @Description 日志记录者
- * @Class List 
- * @Function 
- * @History <author> <time> <version > <desc> 
- king 2013-12-10上午02:27:22  1.0  第一次建立该文件
+ * @Class List
+ * @Function
+ * @History <author> <time> <version > <desc>
+ *          king 2013-12-10上午02:27:22 1.0 第一次建立该文件
+ *          King 2020年6月1日14:21 stable 1.0.01 审定
  */
-namespace Tiny\Log;
+namespace ZeroAI\Log;
 
-use Tiny\Log\Writer\IWriter;
+use ZeroAI\Log\Writer\IWriter;
 
 /**
  * 日志记录前端类
- * 
- * @package Tiny.Log
+ *
+ * @package ZeroAI.Log
  * @since 2013-12-10上午02:27:54
  * @final 2013-12-10上午02:27:54
  */
@@ -26,96 +28,94 @@ class Logger
 {
 
     /**
-     * 日志级别
-     * 
-     * @var int
-     */
-    const EMERG = 0;
-
-    const ALERT = 1;
-
-    const CRIT = 2;
-
-    const ERR = 3;
-
-    const WARN = 4;
-
-    const NOTICE = 5;
-
-    const INFO = 6;
-
-    const DEBUG = 7;
-
-    /**
-     * 错误对应的日志级别
-     * 
+     * 错误码与对应的错误标识
+     *
      * @var array
      */
-    protected static $_errorPriorityMap = array(
-        E_NOTICE => self::NOTICE ,
-        E_USER_NOTICE => self::NOTICE ,
-        E_WARNING => self::WARN ,
-        E_CORE_WARNING => self::WARN ,
-        E_USER_WARNING => self::WARN ,
-        E_ERROR => self::ERR ,
-        E_USER_ERROR => self::ERR ,
-        E_CORE_ERROR => self::ERR ,
-        E_RECOVERABLE_ERROR => self::ERR ,
-        E_STRICT => self::DEBUG ,
-        E_DEPRECATED => self::DEBUG ,
-        E_USER_DEPRECATED => self::DEBUG   
-    );
+    const ERRORS = [
+        E_NOTICE => 'E_NOTICE',
+        E_USER_NOTICE => 'E_USER_NOTICE',
+        E_WARNING => 'E_WARNING',
+        E_CORE_WARNING => 'E_CORE_WARNING',
+        E_USER_WARNING => 'E_USER_WARNING',
+        E_ERROR => 'E_ERROR',
+        E_USER_ERROR => 'E_USER_ERROR',
+        E_CORE_ERROR => 'E_CORE_ERROR',
+        E_RECOVERABLE_ERROR => 'E_RECOVERABLE_ERROR',
+        E_STRICT => 'E_STRICT',
+        E_DEPRECATED => 'E_DEPRECATED',
+        E_USER_DEPRECATED => 'E_USER_DEPRECATED'
+    ];
 
     /**
-     * 优先级别数组
-     * 
+     * 错误码对应的日志优先级
+     *
      * @var array
      */
-    protected static $_priorities = array(
-        self::EMERG => 'EMERG' ,
-        self::ALERT => 'ALERT' ,
-        self::CRIT => 'CRIT' ,
-        self::ERR => 'ERR' ,
-        self::WARN => 'WARN' ,
-        self::NOTICE => 'NOTICE' ,
-        self::INFO => 'INFO' ,
-        self::DEBUG => 'DEBUG'
-    );
+    const ERRORS_PRIORITIES = [
+        E_NOTICE => 5,
+        E_USER_NOTICE => 5,
+        E_WARNING => 4,
+        E_CORE_WARNING => 4,
+        E_USER_WARNING => 4,
+        E_ERROR => 3,
+        E_USER_ERROR => 3,
+        E_CORE_ERROR => 3,
+        E_RECOVERABLE_ERROR => 3,
+        E_STRICT => 3,
+        E_DEPRECATED => 1,
+        E_USER_DEPRECATED => 1
+    ];
+
+    /**
+     * 日志优先级
+     *
+     * @var array
+     */
+    const PRIORITIES = [
+        0 => 'Emergency',
+        1 => 'Alert',
+        2 => 'Critical',
+        3 => 'Error',
+        4 => 'Warning',
+        5 => 'Notice',
+        6 => 'Informational',
+        7 => 'Debug'
+    ];
 
     /**
      * 日志写入器的注册数组
-     * 
+     *
      * @var array
      */
     protected static $_writerMap = array(
-        'file' => 'Tiny\Log\Writer\File' ,
-        'syslog' => 'Tiny\Log\Writer\Syslog' ,
-        'rsyslog' => 'Tiny\Log\Writer\Rsyslog'
+        'file' => '\ZeroAI\Log\Writer\File',
+        'syslog' => '\ZeroAI\Log\Writer\Syslog',
+        'rsyslog' => '\ZeroAI\Log\Writer\Rsyslog'
     );
 
     /**
      * 单一实例
-     * 
+     *
      * @var Logger
      */
     protected static $_instance;
 
     /**
      * 日志写入器的数组
-     * 
+     *
      * @var array
      */
-    protected $_writers = array();
+    protected $_writers = [];
 
     /**
      * 获取Logger的单一实例
-     * 
-     * @param void
+     *
      * @return Logger
      */
     public static function getInstance()
     {
-        if (! self::$_instance)
+        if (!self::$_instance)
         {
             self::$_instance = new self();
         }
@@ -124,109 +124,167 @@ class Logger
 
     /**
      * 注册日志写入器类型
-     * 
-     * @param string $type 日志写入器类型
-     * @param string $className 日志写入器的类名
+     *
+     * @param string $type
+     *        日志写入器类型
+     * @param string $className
+     *        日志写入器的类名
      * @return void
      */
-    public static function regLogWriter($type, $className)
+    public static function regLogWriter($name, $className)
     {
-        if (self::$_writerMap[$type])
+        if (key_exists($name, self::$_writerMap))
         {
-            throw new LogException("注册日志写入器失败:type:${type}已经存在");
+            throw new LogException(sprintf("注册日志写入器失败:type:%s已经存在", $name));
         }
-        self::$_writerMap[$type] = $className;
+        self::$_writerMap[$name] = $className;
     }
 
     /**
      * 添加日志的写入代理
-     * 
-     * @param $priority int 指定的日志级别 可以为数组
-     * @return
+     *
+     * @param string $writername
+     *        写入代理名称
+     * @param array $options
+     *        代理参数
+     * @param $priority int
+     *        指定的日志级别 可以为数组
+     * @return void
      *
      */
-    public function addWriter($options, $type, $priority = array(0, 1, 2, 3, 4, 5, 6, 7))
+    public function addWriter($writername, $policy, $priority = NULL)
     {
-        if (! self::$_writerMap[$type])
+        if (!key_exists($writername, self::$_writerMap))
         {
-            throw new LogException("添加日志的写入实例失败：type:${type}不存在");
+            throw new LogException(sprintf('添加日志的写入器失败：writername:%s没有配置', $writername));
         }
-        $this->_writers[] = array('options' => $options,'type' => $type,'priority' => $priority,'instance' => null);
+
+        if (!is_array($priority) && key_exists($priority, self::PRIORITIES))
+        {
+            $priority = [
+                (int)$priority
+            ];
+        }
+
+        if (!$priority)
+        {
+            $priority = array_keys(self::PRIORITIES);
+        }
+
+        $this->_writers[] = [
+            'policy' => $policy,
+            'writername' => $writername,
+            'priority' => $priority,
+            'instance' => NULL
+        ];
     }
 
     /**
      * 日志记录
-     * 
-     * @param $priority int 日志优先级别
-     * @param mixed $message 日志内容
-     * @param array $extra 附加信息数组
+     *
+     * @param string $id
+     *        日志ID
+     * @param mixed $message
+     *        日志内容
+     * @param $priority int
+     *        日志优先级别
+     * @param array $extra
+     *        附加信息数组
      * @return void
      */
-    public function log($id, $message, $priority = 1, $extra = array())
+    public function log($id, $message, $priority = 1, $extra = [])
     {
-        if ($priority < 0 || $priority > 7)
+        if (!key_exists($priority, self::PRIORITIES))
         {
-            $priority = 7;
+            $priority = 1;
         }
         if (is_object($message) || is_array($message))
         {
-            $message = var_export($message, true);
+            $message = var_export($message, TRUE);
         }
-        if (! empty($extra))
+        if (!empty($extra))
         {
-            $message .= var_export($extra, true);
+            $message .= var_export($extra, TRUE);
         }
-        $message = self::$_priorities[$priority] . ' ' . date('y-m-d H:i:s') . ' ' . str_replace("\n", '', $message) . "\r\n";
-        $this->write((string) $id, $message, $priority);
+        $message = str_replace("\n", '', $message);
+        $date = date('y-m-d H:i:s');
+        $message = sprintf("%s %s %s \r\n", self::PRIORITIES[$priority], $date, $message);
+        echo $message;
+        $this->write($id, $message, $priority);
     }
 
     /**
      * 记录错误信息
-     * 
-     * @param int $errLevel 错误优先级别
-     * @param mixed $message 日志内容
-     * @param array $extra 附加信息数组
+     *
+     * @param int $errLevel
+     *        错误优先级别
+     * @param mixed $message
+     *        日志内容
+     * @param array $extra
+     *        附加信息数组
      * @return void
      */
-    public function error($errLevel, $message, $extra = array())
+    public function error($id, $errLevel, $message, $extra = [])
     {
-        return $this->log('error', self::$_errorPriorityMap[$errLevel], $message, $extra);
+        $errorid = self::ERRORS[$errLevel] ?: 'E_NOTICE';
+        $priority = self::ERRORS_PRIORITIES[$errLevel] ?: 1;
+        $message = $errorid . ' ' . $message;
+        return $this->log($id, $message, $priority, $extra);
     }
 
     /**
      * 写入日志
-     * 
-     * @param void
+     *
+     * @param string $id
+     *        日志ID
+     * @param string $messages
+     * @param int $priority
+     *        日志优先等级
      * @return void
      */
     public function write($id, $message, $priority)
     {
-        if (count($this->_writers) == 0)
+        if (empty($this->_writers))
         {
             return;
         }
         foreach ($this->_writers as & $w)
         {
-            if (! ($w['priority'] == $priority || (is_array($w['priority']) && in_array($priority, $w['priority']))))
+            if (!in_array($priority, $w['priority']))
             {
                 continue;
             }
-            if (! $w['instance'])
+            if (!$w['instance'])
             {
-                $w['instance'] = new self::$_writerMap[$w['type']]($w['options']);
-                if (! ($w['instance'] instanceof IWriter))
-                {
-                    throw new LogException('实例化LogWriter失败：没有实现接口Tiny\Log\Writer\IWriter');
-                }
+                $w['instance'] = $this->_createWriter($w['writername'], $w['policy']);
             }
+
             $w['instance']->doWrite($id, $message, $priority);
         }
     }
 
     /**
-     * 构造函数
-     * 
-     * @param void
+     * 创建一个日志写入器
+     *
+     * @param string $writername
+     * @param mixed $options
+     * @throws LogException
+     * @return \ZeroAI\Log\Writer\IWriter
+     */
+    protected function _createWriter($writername, $policy)
+    {
+        $className = self::$_writerMap[$writername];
+        $writer = new $className($policy);
+        if (!($writer instanceof IWriter))
+        {
+            throw new LogException('实例化LogWriter失败：没有实现接口ZeroAI\Log\Writer\IWriter');
+        }
+        return $writer;
+    }
+
+    /**
+     * 构造函数 限制为单例模式
+     *
      * @return void
      */
     protected function __construct()

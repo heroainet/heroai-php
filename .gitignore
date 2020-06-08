@@ -4,3 +4,5 @@
 .git
 .settings
 /vendor/
+.DS_Store
+*.phar

@@ -13,8 +13,9 @@
  * @History
  * <author> <time> <version > <desc>
  * King Sun Jan 22 23:01:49 CST 2012 Beta 1.0 第一次建立该文件
+ * King 2020年6月1日14:21 stable 1.0.01 审定
  */
-namespace Tiny\Net\Mail;
+namespace ZeroAI\Net\Mail;
 
 /**
  * Socket协议实现的Smtp推送邮件类
@@ -105,7 +106,7 @@ class Smtp
 
 	/**
 	 * 构造函数
-	 * 
+	 *
 	 * @param string $host smtp服务器地址
 	 * @param int $port smtp服务器端口
 	 * @param bool $auth 是否需要验证
@@ -121,13 +122,13 @@ class Smtp
 		$this->_auth = (bool)$auth;
 		$this->_username = $username;
 		$this->_password = $password;
-		$this->_hostname = "tiny-smtp-host"; // is used in HELO command
+		$this->_hostname = "zeroai-smtp-host"; // is used in HELO command
 		$this->_sock = false;
 	}
 
 	/**
 	* 设置smtp的地址和端口
-	* 
+	*
 	* @param string $host 服务器地址
 	* @param int $port 端口
 	* @return Smtp
@@ -140,7 +141,7 @@ class Smtp
 
 	/**
 	* 设置验证参数
-	* 
+	*
 	* @param string $username smtp用户名
 	* @param string $password 用户密码
 	* @param bool $isAuth 是否验证
@@ -156,7 +157,7 @@ class Smtp
 
 	/**
 	* 设置邮件正文是否为html格式
-	* 
+	*
 	* @param bool $isBodyHtml true  是
 	*                         false 否
 	* @return Smtp
@@ -169,7 +170,7 @@ class Smtp
 
 	/**
 	* 设置是否开启调试模式
-	* 
+	*
 	* @param bool $isDebug 是否开启调试模式
 	* @return Smtp
 	*/
@@ -181,7 +182,7 @@ class Smtp
 
 	/**
     * 设置socket超时秒数
-    * 
+    *
     * @param int $timeout 秒数
     * @return Smtp
     */
@@ -193,7 +194,7 @@ class Smtp
 
 	/**
 	 * 添加附件
-	 * 
+	 *
 	 * @param string $filename 文件名称
 	 * @param string $content 文件内容
 	 * @return Smtp
@@ -213,7 +214,7 @@ class Smtp
 
 	/**
 	 * 清理附加的附件路径
-	 * 
+	 *
 	 * @param void
 	 * @return Smtp
 	 */
@@ -225,7 +226,7 @@ class Smtp
 
 	/**
 	 * 发送邮件
-	 * 
+	 *
 	 * @param string $to 收件邮件地址 多个邮件地址可以,隔开
 	 * @param string $from 发送邮件地址
 	 * @param string $subject 邮件标题
@@ -321,7 +322,7 @@ class Smtp
 
 	/**
 	 * 发送SMTP握手语
-	 * 
+	 *
 	 * @param $helo string 握手语
 	 * @return bool
 	 */
@@ -372,7 +373,7 @@ class Smtp
 
 	/**
 	 * 打开Smtp协议的Socket链接
-	 * 
+	 *
 	 * @param string $address 邮件地址
 	 * @return bool
 	 */
@@ -383,7 +384,7 @@ class Smtp
 
 	/**
 	 * 应答
-	 * 
+	 *
 	 * @param void
 	 * @return bool
 	 */
@@ -399,7 +400,7 @@ class Smtp
 
 	/**
 	 * 没有真实IP时的握手
-	 * 
+	 *
 	 * @param string $address 邮件地址
 	 * @return bool
 	 */
@@ -424,7 +425,7 @@ class Smtp
 
 	/**
 	 * 压入Message
-	 * 
+	 *
 	 * @param $header string 文件头信息
 	 * @param string $body 主体信息
 	 * @return bool
@@ -438,7 +439,7 @@ class Smtp
 
 	/**
 	 * 邮件内容边界符
-	 * 
+	 *
 	 * @param void
 	 * @return bool
 	 */
@@ -451,7 +452,7 @@ class Smtp
 
 	/**
 	 * OK
-	 * 
+	 *
 	 * @param void
 	 * @return bool
 	 */
@@ -470,7 +471,7 @@ class Smtp
 
 	/**
 	 * 压入CMD
-	 * 
+	 *
 	 * @param string $cmd CMD内容
 	 * @return string $arg 参数
 	 */
@@ -487,7 +488,7 @@ class Smtp
 
 	/**
 	 * 消除脚本格式
-	 * 
+	 *
 	 * @param string $address 地址
 	 * @return string
 	 */
@@ -498,7 +499,7 @@ class Smtp
 
 	/**
 	 * 获取邮件地址
-	 * 
+	 *
 	 * @param string $address 地址
 	 * @return string
 	 */
@@ -509,7 +510,7 @@ class Smtp
 
 	/**
 	 * 输出调试信息
-	 * 
+	 *
 	 * @param $message
 	 * @return void
 	 */

@@ -1,27 +1,27 @@
 <?php
 /**
- * @Copyright (C), 2011-, King.$i
- * @Name CurlWebRequest.php
- * @Author King
- * @Version Beta 1.0
+ *
+ * @copyright (C), 2011-, King.$i
+ * @name CurlWebRequest.php
+ * @author King
+ * @version Beta 1.0
  * @Date Tue Jan 24 01:56:58 CST 2012
  * @Description
  * @Class List
- * 1.
+ *        1.
  * @Function List
- * 1.
- * @History
- * <author> <time> <version > <desc>
- * King Tue Jan 24 01:56:58 CST 2012 Beta 1.0 第一次建立该文件
+ *           1.
+ * @History <author> <time> <version > <desc>
+ *          King Tue Jan 24 01:56:58 CST 2012 Beta 1.0 第一次建立该文件
+ *          King 2020年6月1日14:21 stable 1.0.01 审定
  */
-namespace Tiny\Net\Http;
-
+namespace ZeroAI\Net\Http;
 
 
 /**
  * CURL HTTP实现，可执行多线程同步获取远程链接
- * 
- * @package Tiny.Net.Http
+ *
+ * @package ZeroAI.Net.Http
  * @since 2012-2-27 上午05:12:12
  * @final 2014-2-06
  */
@@ -30,125 +30,126 @@ class WebRequest
 
     /**
      * 最后一次请求所耗费的时间
-     * 
+     *
      * @var float
      */
     protected $_lastInterval = 0;
 
     /**
      * Socket超时时间
-     * 
+     *
      * @var int
      */
     protected $_timeout = 10;
 
     /**
      * 是否保持cookie
-     * 
+     *
      * @var bool
      */
     protected $_isKeepCookie = '';
 
     /**
      * 持有的cookie数组
-     * 
+     *
      * @var array
      */
-    protected $_keepCookies = array();
+    protected $_keepCookies = [];
 
     /**
      * 代理参数
-     * 
+     *
      * @var string
      */
     protected $_proxy;
 
     /**
      * 验证信息
-     * 
+     *
      * @var string
      */
     protected $_auth;
 
     /**
      * 绑定的自身出口IP
-     * 
+     *
      * @var string
      */
     protected $_interface;
 
     /**
      * 发送的Header数组
-     * 
+     *
      * @var array
      */
-    protected $_headers = array(
-        'Accept' => 'text/html, application/xhtml+xml, */*' ,
-        'Accept-Language' => 'zh-cn' ,
-        'User-Agent' => 'Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 5.1; Trident/4.0; .NET CLR 2.0.50727; .NET CLR 3.0.4506.2152; .NET CLR 3.5.30729; InfoPath.2)' ,
+    protected $_headers = [
+        'Accept' => 'text/html, application/xhtml+xml, */*',
+        'Accept-Language' => 'zh-cn',
+        'User-Agent' => 'Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 5.1; Trident/4.0; .NET CLR 2.0.50727; .NET CLR 3.0.4506.2152; .NET CLR 3.5.30729; InfoPath.2)',
         'Expect' => ''
-    );
+    ];
 
     /**
      * 最大的重定向次数
-     * 
+     *
      * @var int
      */
     protected $_maxRedirect = 3;
 
     /**
      * 响应请求的信息数组
-     * 
+     *
      * @var float
      */
-    protected $_resInfo = array();
+    protected $_resInfo = [];
 
     /**
      * 响应请求的Body
-     * 
+     *
      * @var string
      */
     protected $_resBody = '';
 
     /**
      * 多线程请求句柄
-     * 
+     *
      * @var resource
      */
     protected $_mutiHandle;
 
     /**
      * 异步多线程的请求容器
-     * 
+     *
      * @var array
      */
-    protected $_threads = array();
+    protected $_threads = [];
 
     /**
      * 设置连接超时时间
-     * 
-     * @param float $second 秒
+     *
+     * @param float $sec
+     *        秒
      * @return void
      */
     public function setTimeout($sec)
     {
-        $second = (int) $sec;
         if ($sec <= 0)
         {
             return false;
         }
-        $this->_timeout = $sec;
+        $this->_timeout = (int)$sec;
     }
 
     /**
      * 设置是否保持cookie的文件名
-     * 
-     * @param bool 是为保持 设置为否会清理已存在的cookie
+     *
+     * @param bool $isKeep
+     *        是为保持 设置为否会清理已存在的cookie
      * @return WebRequest
      */
     public function setKeepCookie($isKeep)
     {
-        if (! $isKeep)
+        if (!$isKeep)
         {
             $this->_keepCookies = array();
         }
@@ -158,8 +159,9 @@ class WebRequest
 
     /**
      * 设置简单的proxy
-     * 
-     * @param string url $proxy 类似http://域名:端口
+     *
+     * @param string $proxy
+     *        类似http://域名:端口
      * @return WebRequest
      */
     public function setProxy($proxy)
@@ -170,21 +172,24 @@ class WebRequest
 
     /**
      * 设置传递的用户验证信息
-     * 
-     * @param string $user 用户验证信息
-     * @param string $passwd 密码
+     *
+     * @param string $user
+     *        用户验证信息
+     * @param string $passwd
+     *        密码
      * @return WebRequest
      */
     public function setAuth($user, $passwd)
     {
-        $this->_auth = (! $user) ? '' : "$user:$passwd";
+        $this->_auth = (!$user) ? '' : "$user:$passwd";
         return $this;
     }
 
     /**
      * 设置绑定哪个网卡的IP访问远程地址
-     * 
+     *
      * @param string $ip
+     *        绑定IP地址
      * @return WebRequest
      */
     public function setInterface($ip)
@@ -195,25 +200,30 @@ class WebRequest
 
     /**
      * 获取响应信息
-     * 
-     * @param string $key 响应信息的键 单个可以获取集合里面对应的值，为false或者null，则获取整个集合数组
+     *
+     * @param string $key
+     *        响应信息的键 单个可以获取集合里面对应的值，为false或者null，则获取整个集合数组
      * @return array || string
      */
-    public function getResInfo($key = null)
+    public function getResInfo($key = NULL)
     {
-        return (! $key) ? $this->_resInfo : $this->_resInfo[$key];
+        return (!$key) ? $this->_resInfo : $this->_resInfo[$key];
     }
 
     /**
      * 进行POST请求
-     * 
-     * @param string $url 带http://的URL连接,可带GET参数 启动multi模式后，则需要exec才能执行
-     * @param array $data POST的数据数组
-     * @param array $cookie 预设的Cookie数组
-     * @param array $headers 附加的header数组
+     *
+     * @param string $url
+     *        带http://的URL连接,可带GET参数 启动multi模式后，则需要exec才能执行
+     * @param array $data
+     *        POST的数据数组
+     * @param array $cookie
+     *        预设的Cookie数组
+     * @param array $headers
+     *        附加的header数组
      * @return string || WebRequest
      */
-    public function post($url, array $data = array(), array $cookie = array(), array $headers = array())
+    public function post($url, array $data = [], array $cookie = [], array $headers = [])
     {
         $request = $this->_buildRequest($url, 'POST', $data, $cookie, $headers);
         if ($this->_multiHandle)
@@ -226,9 +236,15 @@ class WebRequest
 
     /**
      * 进行GET请求
-     * 
-     * @param string 带GET参数的URL
-     * @param string $cookie Cookie数组或者可以为querystring方式
+     *
+     * @param string $url
+     *        带GET参数的URL
+     * @param array $data
+     *        附带数据
+     * @param string $cookie
+     *        Cookie数组或者可以为querystring方式
+     * @param array $headers
+     *        附带头部数组
      * @return string || WebRequest
      */
     public function get($url, array $data = array(), array $cookie = array(), array $headers = array())
@@ -244,20 +260,18 @@ class WebRequest
 
     /**
      * 多线程初始化
-     * 
-     * @param void
+     *
      * @return bool
      */
     public function multi()
     {
         $this->_multiHandle = curl_multi_init();
-        $this->_multiRequests = array();
+        $this->_multiRequests = [];
     }
 
     /**
      * 取消并发访问
-     * 
-     * @param void
+     *
      * @return void
      */
     public function discard()
@@ -266,13 +280,12 @@ class WebRequest
         {
             curl_multi_close($this->_multiHandle);
         }
-        $this->_multiRequests = array();
+        $this->_multiRequests = [];
     }
 
     /**
      * 执行并发请求并返回body
-     * 
-     * @param void
+     *
      * @return array
      */
     public function exec()
@@ -282,23 +295,28 @@ class WebRequest
             $request = $this->_initRequest($request);
             curl_multi_add_handle($this->_multiHandle, $request);
         }
+
+        $active = NULL;
         do
         {
             $mrc = curl_multi_exec($this->_multiHandle, $active);
         }
-        while ($mrc == CURLM_CALL_MULTI_PERFORM);
-        while ($active and $mrc == CURLM_OK)
+        while (CURLM_CALL_MULTI_PERFORM == $mrc);
+
+        while ($active && $mrc == CURLM_OK)
         {
-            if (curl_multi_select($this->_multiHandle) != - 1)
+            if (curl_multi_select($this->_multiHandle) == -1)
             {
-                do
-                {
-                    $mrc = curl_multi_exec($this->_multiHandle, $active);
-                }
-                while ($mrc == CURLM_CALL_MULTI_PERFORM);
+                continue;
             }
+            do
+            {
+                $mrc = curl_multi_exec($this->_multiHandle, $active);
+            }
+            while (CURLM_CALL_MULTI_PERFORM == $mrc);
         }
-        $contents = array();
+
+        $contents = [];
         foreach ($this->_multiRequests as $ch)
         {
             $contents[] = curl_multi_getcontent($ch);
@@ -310,74 +328,83 @@ class WebRequest
 
     /**
      * 生成Cookie
-     * 
-     * @param array || string $array Cookie数组
+     *
+     * @param array $cookie
+     *        Cookie数组
      * @return string
      */
     protected function _buildCookie($cookie)
     {
-        if (is_array($cookie))
+        if (!is_array($cookie))
         {
-            $cs = array();
-            foreach ($cookie as $k => $v)
-            {
-                $v = rawurlencode($v);
-                $cs[] = "$k=$v";
-            }
-            return join(';', $cs);
+            return $cookie;
         }
-        return $cookie;
+        $cs = [];
+        foreach ($cookie as $k => $v)
+        {
+            $v = rawurlencode($v);
+            $cs[] = "$k=$v";
+        }
+        return join(';', $cs);
     }
 
     /**
      * 生成HEADER
-     * 
-     * @param array $cookie 默认的cookie
+     *
+     * @param array $headers
+     *        默认的headers
      * @return array
      *
      */
-    protected function _buildHeader(array $headers = array())
+    protected function _buildHeader(array $headers = [])
     {
         return array_merge($this->_headers, $headers);
     }
 
     /**
      * 构建request
-     * 
-     * @param string $url 网址
-     * @param string 请求方式
-     * @param array $data 请求数据
-     * @param array $cookie 请求的cookie
-     * @param array $headers 附加的header
-     * @param bool $isNobody 是否不需要获得正文即可返回
+     *
+     * @param string $url
+     *        网址
+     * @param string $method
+     *        请求方式
+     * @param array $data
+     *        请求数据
+     * @param array $cookie
+     *        请求的cookie
+     * @param array $headers
+     *        附加的header
+     * @param bool $isNobody
+     *        是否不需要获得正文即可返回
      * @return array
      */
-    protected function _buildRequest($url, $method, array $data = array(), $cookie = array(), $headers = array(), $isNobody = false)
+    protected function _buildRequest($url, $method, array $data = [], $cookie = [], $headers = [], $isNobody = FALSE)
     {
-        if ($this->_isKeepCookie && ! empty($this->_keepCookies))
+        if ($this->_isKeepCookie && !empty($this->_keepCookies))
         {
             $cookie = array_merge($this->_keepCookies, $cookie);
         }
         $isPost = strtoupper($method) == 'POST' ? true : false;
-        if (! ($isPost || empty($data)))
+        if (!($isPost || empty($data)))
         {
-            $url .= (! strpos($url, '?') ? '?' : '') . http_build_query($data);
+            $url .= (!strpos($url, '?') ? '?' : '') . http_build_query($data);
             $data = '';
         }
-        return array(
-            'url' => $url ,
-            'headers' => $this->_buildHeader($cookie, $headers) ,
-            'isPost' => $isPost ,
-            'data' => $data ,
-            'cookie' => $this->_buildCookie($cookie) ,
+        return [
+            'url' => $url,
+            'headers' => $this->_buildHeader($cookie, $headers),
+            'isPost' => $isPost,
+            'data' => $data,
+            'cookie' => $this->_buildCookie($cookie),
             'isNobody' => $isNobody
-        );
+        ];
     }
 
     /**
      * 获取响应
-     * 
-     * @param array $request 请求数组
+     *
+     * @param array $request
+     *        请求数组
      * @return string
      */
     protected function _getResponse($req)
@@ -389,8 +416,9 @@ class WebRequest
 
     /**
      * 初始化请求句柄
-     * 
-     * @param array $req 请求信息数组
+     *
+     * @param array $req
+     *        请求信息数组
      * @return mixed handle
      */
     protected function _initRequest($req)
@@ -401,7 +429,9 @@ class WebRequest
         curl_setopt($handle, CURLOPT_TIMEOUT_MS, $this->_timeout * 1000);
         curl_setopt($handle, CURLOPT_SSL_VERIFYHOST, 0);
         curl_setopt($handle, CURLOPT_SSL_VERIFYPEER, 0);
-        curl_setopt($handle, CURLOPT_HTTPHEADER, array('Expect:'));
+        curl_setopt($handle, CURLOPT_HTTPHEADER, array(
+            'Expect:'
+        ));
         curl_setopt($handle, CURLOPT_AUTOREFERER, true);
         if ($this->_proxy)
         {
@@ -416,7 +446,7 @@ class WebRequest
         {
             curl_setopt($handle, CURLOPT_INTERFACE, $this->_interface);
         }
-        if (! $this->_multiHandle)
+        if (!$this->_multiHandle)
         {
             curl_setopt($handle, CURLOPT_HEADER, true);
         }
@@ -430,7 +460,7 @@ class WebRequest
             curl_setopt($handle, CURLOPT_POST, true);
             curl_setopt($handle, CURLOPT_POSTFIELDS, $req['data']);
         }
-        if (! empty($req['cookie']))
+        if (!empty($req['cookie']))
         {
             curl_setopt($handle, CURLOPT_COOKIE, $req['cookie']);
         }
@@ -439,8 +469,9 @@ class WebRequest
 
     /**
      * 执行请求
-     * 
-     * @param string $handle curl请求句柄
+     *
+     * @param string $handle
+     *        curl请求句柄
      * @return string || null
      */
     protected function _execRequest($handle, $req)
@@ -450,7 +481,7 @@ class WebRequest
         {
             new \Exception(curl_error($handle) . curl_errno($handle), E_WARNING);
         }
-        list ($resHeader, $this->_resBody) = explode("\r\n\r\n", $resString, 2);
+        list($resHeader, $this->_resBody) = explode("\r\n\r\n", $resString, 2);
         $resInfo = curl_getinfo($handle);
         $code = $resInfo['http_code'];
         if ($code == 301 || $code == 302 || $code == 303 || $code == 307)
@@ -459,15 +490,15 @@ class WebRequest
             return ($this->_maxRedirect > 3) ? '' : $this->_getResponse($req);
         }
         $resHeaders = explode("\r\n", $resHeader);
-        $cookies = array();
-        $rhs = array();
+        $cookies = [];
+        $rhs = [];
         foreach ($resHeaders as & $h)
         {
-            list ($k, $v) = explode(":", $h);
+            list($k, $v) = explode(":", $h);
             if (strtolower($k) == "set-cookie")
             {
-                list ($c) = explode(";", $v);
-                list ($k, $v) = explode('=', $c);
+                list($c) = explode(";", $v);
+                list($k, $v) = explode('=', $c);
                 $v = rawurldecode($v);
                 $cookies[$k] = $v;
             }
@@ -479,7 +510,7 @@ class WebRequest
         $resInfo['res_headers'] = $rhs;
         $resInfo['res_cookies'] = $cookies;
         $resHeaders['cookies'] = $cookies;
-        if ($this->_isKeepCookie && ! empty($cookies))
+        if ($this->_isKeepCookie && !empty($cookies))
         {
             $this->_keepCookies = array_merge($this->_keepCookies, $cookies);
         }

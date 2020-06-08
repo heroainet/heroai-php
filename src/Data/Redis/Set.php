@@ -1,23 +1,25 @@
 <?php
 /**
- * @Copyright (C), 2013-, King.
- * @Name Set.php
- * @Author King
- * @Version 1.0 
+ *
+ * @copyright (C), 2013-, King.
+ * @name Set.php
+ * @author King
+ * @version 1.0
  * @Date: 2013-11-30下午04:34:02
- * @Description 
- * @Class List 
- * @Function 
- * @History <author> <time> <version > <desc> 
- king 2013-11-30下午04:34:02  1.0  第一次建立该文件
+ * @Description
+ * @Class List
+ * @Function
+ * @History <author> <time> <version > <desc>
+ *          king 2013-11-30下午04:34:02 1.0 第一次建立该文件
+ *          King 2020年6月1日14:21 stable 1.0.01 审定
  */
-namespace Tiny\Data\Redis;
+namespace ZeroAI\Data\Redis;
 
 
 /**
  * redis的set结构操作类
- * 
- * @package Tiny.Data.Redis
+ *
+ * @package ZeroAI.Data.Redis
  * @since 2013-11-30下午04:34:36
  * @final 2013-11-30下午04:34:36
  */
@@ -26,8 +28,9 @@ class Set extends Base
 
     /**
      * 添加值到集合中
-     * 
-     * @param $val  mixed 值
+     *
+     * @param mixed $val
+     *        值
      * @return bool
      */
     public function add($val)
@@ -37,8 +40,9 @@ class Set extends Base
 
     /**
      * 移除集合里的某个值
-     * 
-     * @param $val mixed 值
+     *
+     * @param mixed $val
+     *        值
      * @return bool
      */
     public function remove($val)
@@ -48,8 +52,9 @@ class Set extends Base
 
     /**
      * 检测某个数值是否是集合的成员
-     * 
-     * @param $val mixed 数值
+     *
+     * @param mixed $val
+     *        数值
      * @return bool
      */
     public function contains($val)
@@ -59,8 +64,7 @@ class Set extends Base
 
     /**
      * 集合的元素数目
-     * 
-     * @param void
+     *
      * @return int
      */
     public function size()
@@ -70,92 +74,91 @@ class Set extends Base
 
     /**
      * 求差集
-     * 
-     * @param $key mixed 其他需要求差集的键
-     * @return void
+     *
+     * @param mixed $key
+     *        键
+     * @param array $skeys
+     *        其他需要求差集的键
+     * @return array
      */
-    public function diff($key)
+    public function diff($key, ...$skeys)
     {
-        $args = func_get_args();
-        array_unshift($args, $this->_key);
-        return $this->_redis->sDiff($args);
+        return $this->_redis->sDiff($key, ...$skeys);
     }
 
     /**
      * 求差集并保存在指定的键里
-     * 
-     * @param string $outKey 保存差集的键
-     * @param string $key 求差集的键
-     * @return bool
+     *
+     * @param string $dstKey
+     *        保存差集的键
+     * @param string $skeys
+     *        求差集的键
+     * @return array
      */
-    public function diffStore($outKey, $key)
+    public function diffStore($dstKey, ...$skeys)
     {
-        $args = func_get_args();
-        array_unshift($args, $outKey);
-        $args[1] = $this->_key;
-        return $this->_redis->sDiffStore($args);
+        return $this->_redis->sDiffStore($skeys, ...$skeys);
     }
 
     /**
      * 求交集
-     * 
-     * @param $key string 其他需要求交集的键
-     * @return void
+     *
+     * @param string $key
+     *        键
+     * @param array $skeys
+     *        其他需要求交集的键
+     * @return array
      */
-    public function inter($key)
+    public function inter($key, $skeys)
     {
-        $args = func_get_args();
-        array_unshift($args, $this->_key);
-        return $this->_redis->sInter($args);
+        return $this->_redis->sInter($key, ...$skeys);
     }
 
     /**
      * 求交集并保存在指定的键里
-     * 
-     * @param string $outKey 保存交集的键
-     * @param string $key 求交集的键
+     *
+     * @param string $dstKey
+     *        保存交集的键
+     * @param string $skeys
+     *        求交集的键
      * @return bool
      */
-    public function interStore($outKey, $key)
+    public function interStore($dstKey, ...$skeys)
     {
-        $args = func_get_args();
-        array_unshift($args, $outKey);
-        $args[1] = $this->_key;
-        return $this->_redis->sInterStore($args);
+        return $this->_redis->sInterStore($dstKey, ...$skeys);
     }
 
     /**
      * 求并集
-     * 
-     * @param $key string 其他需要求并集的键
-     * @return void
+     *
+     * @param string $key
+     *        目标键
+     * @param array $skeys
+     *        求并集的其他键
+     * @return array
      */
-    public function union($key)
+    public function union($key, ...$skeys)
     {
-        $args = func_get_args();
-        array_unshift($args, $this->_key);
-        return $this->_redis->sUnion($args);
+        return $this->_redis->sUnion($key, ...$skeys);
     }
 
     /**
      * 求并集并保存在指定的键里
-     * 
-     * @param string $outKey 保存并集的键
-     * @param string $key 求并集的键
-     * @return bool
+     *
+     * @param string $key
+     *        保存并集的键
+     * @param array $skeys
+     *        求并集的键
+     * @return array
      */
-    public function unionStore($outKey, $key)
+    public function unionStore($key, ...$skeys)
     {
-        $args = func_get_args();
-        array_unshift($args, $outKey);
-        $args[1] = $this->_key;
-        return $this->_redis->sUnionStore($args);
+        return $this->_redis->sUnionStore($key, ...$skeys);
     }
 
     /**
      * 随机返回并删除名称为key的set中一个元素
-     * 
-     * @param void
+     *
      * @return mixed
      */
     public function pop()
@@ -165,8 +168,7 @@ class Set extends Base
 
     /**
      * 随机取回一个集合中的值
-     * 
-     * @param void
+     *
      * @return mixed
      */
     public function rand()
@@ -176,8 +178,7 @@ class Set extends Base
 
     /**
      * 获取集合的所有成员
-     * 
-     * @param void
+     *
      * @return array
      */
     public function getMembers()

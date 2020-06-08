@@ -7,6 +7,6 @@
     	"email" : "zeroainet@qq.com"
     },
     "autoload":{
-    "psr-4" : { "Tiny\\":"src/"}
+    "psr-4" : { "ZeroAI\\":"src/"}
     }
 }

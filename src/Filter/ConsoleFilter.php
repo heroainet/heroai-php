@@ -1,37 +1,40 @@
-<?php 
+<?php
 /**
- * @Copyright (C), 2013-, King.
- * @Name ConsoleFilter.php
- * @Author King
- * @Version Beta 1.0 
+ *
+ * @copyright (C), 2013-, King.
+ * @name ConsoleFilter.php
+ * @author King
+ * @version Beta 1.0
  * @Date 2017年3月9日下午9:21:05
- * @Desc
- * @Class List 
- * @Function List 
+ * @Class List
+ * @Function List
  * @History King 2017年3月9日下午9:21:05 0 第一次建立该文件
- *               King 2017年3月9日下午9:21:05 1 上午修改
+ *          King 2017年3月9日下午9:21:05 1 上午修改
+ *          King 2020年6月1日14:21 stable 1.0.01 审定
  */
-namespace Tiny\Filter;
+namespace ZeroAI\Filter;
 
-use Tiny\Mvc\Request\Base as Request;
-use Tiny\Mvc\Response\Base as Response;
+use ZeroAI\MVC\Request\Base as Request;
+use ZeroAI\MVC\Response\Base as Response;
 
 /**
  * 命令行过滤器
- * @package 
- * @since 
- * @final 
+ *
+ * @package ZeroAI.Filter
+ * @since 2017年3月9日下午9:21:05
+ * @final 2017年3月9日下午9:21:05
  */
 class ConsoleFilter implements IFilter
 {
+
     /**
      * 开始过滤
-     * {@inheritDoc}
-     * @see \Tiny\Filter\IFilter::doFilter()
+     *
+     * {@inheritdoc}
+     * @see \ZeroAI\Filter\IFilter::doFilter()
      */
     public function doFilter(Request $req, Response $res)
     {
-        
     }
 }
 ?>

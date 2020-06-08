@@ -1,21 +1,24 @@
 <?php
 /**
- * @Copyright (C), 2013-, King.
- * @Name LogException.php
- * @Author King
- * @Version 1.0 
+ *
+ * @copyright (C), 2013-, King.
+ * @name LogException.php
+ * @author King
+ * @version 1.0
  * @Date: 2013-12-10上午03:49:33
- * @Description 
- * @Class List 
- * @Function 
- * @History <author> <time> <version > <desc> 
-                   king 2013-12-10上午03:49:33  1.0  第一次建立该文件
+ * @Description
+ * @Class List
+ * @Function
+ * @History <author> <time> <version > <desc>
+ *          king 2013-12-10上午03:49:33 1.0 第一次建立该文件
+ *          King 2020年6月1日14:21 stable 1.0.01 审定
  */
-namespace Tiny\Log;
+namespace ZeroAI\Log;
 
 /**
- *  日志异常
- * @package public
+ * 日志异常
+ *
+ * @package ZeroAI.Log
  * @since 2013-12-10上午03:49:59
  * @final 2013-12-10上午03:49:59
  */

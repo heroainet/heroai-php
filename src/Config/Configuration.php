@@ -1,111 +1,176 @@
 <?php
 /**
- * @Copyright (C), 2011-, King.
+ *
+ * @copyright (C), 2011-, King.
  * @Name: Config.php
  * @Author: King
  * @Version: Beta 1.0
  * @Date: 2013-4-5下午12:29:59
  * @Description:
  * @Class List:
- *  	1.
- *  @Function List:
- *   1.
- *  @History:
- *      <author>    <time>                        <version >   <desc>
- *        King      2013-4-5下午12:29:59  Beta 1.0           第一次建立该文件
+ *        1.
+ * @Function List:
+ *           1.
+ * @History: <author> <time> <version > <desc>
+ *           King 2013-4-5下午12:29:59 Beta 1.0 第一次建立该文件
  *
  */
-namespace Tiny\Config;
+namespace ZeroAI\Config;
+
+use ZeroAI\Config\Parser\IParser;
+use ZeroAI\Cache\Cache;
 
 /**
  * 配置类
- * 
+ *
  * @package Tiny.Config
  * @since ：Mon Oct 31 23 54 26 CST 2011
  * @final :Mon Oct 31 23 54 26 CST 2011
- *         2018-02-12 修改与优化类 路径为文件夹下，可以自动寻找下级目录的配置文件
+ *        2018-02-12 修改与优化类 路径为文件夹下，可以自动寻找下级目录的配置文件
  */
-class Configuration implements \ArrayAccess
+class Configuration implements \ArrayAccess, IParser
 {
+
     /**
-     * 
+     * 注册的配置解析器工具类数组
+     *
      * @var array
      */
-    protected static $_fileVars = [];
-    
+    protected static $_parserMap = [
+        'ini' => '\ZeroAI\Config\Parser\IniParser',
+        'json' => '\ZeroAI\Config\Parser\JSONParser',
+        'yml' => '\ZeroAI\Config\Parser\YamlParser'
+    ];
+
     /**
-     * 该配置实例是否为文件模式
-     * 
+     * 缓存实例
+     * @var Cache
+     */
+    protected $_cache;
+
+    /**
+     * 缓存的文件路径对应的数据，避免多次加载
+     *
+     * @var array
+     */
+    protected static $_filedata = [];
+
+    /**
+     *
+     * @var array
+     */
+    protected $_parsers = [];
+
+    /**
+     * 该配置初始化路径是否为文件
+     *
      * @var string
      */
-    protected $_isFile = false;
+    protected $_isFile = FALSE;
 
     /**
      * 该配置文件/文件夹的路径
+     *
      * @var string
      */
     protected $_path;
 
     /**
-     * 文件名或文件数组
-     * 
-     * @var string || array
-     */
-    protected $_files = [];
-    
-    /**
-     * 在配置文件夹中读取的变量数组
-     * 
+     * 配置文件路径数组
      * @var array
      */
-    protected $_data = NULL;
-    
+    protected $_paths = [];
+
     /**
-     * 已加载的节点和值
+     * 在配置文件夹中读取的变量数组
      *
      * @var array
      */
-    protected $_nodes = [];
+    protected $_data = NULL;
+
+    /**
+     * 注册配置解析器映射
+     *
+     * @param string $ext
+     *        文件扩展名
+     * @param string $parser
+     *        解析器类名
+     */
+    public static function regConfigParser($ext, $parser)
+    {
+        self::$_parserMap[$ext] = $parser;
+    }
+
+    /**
+     * 解析PHP文件
+     *
+     * @param string $fpath
+     *        文件或文件夹路径
+     * @see \ZeroAI\Config\Parser\IParser::parse()
+     * @return mixed 返回PHP配置数据，会遵循先获取返回值，如果返回值为空或者FALSE 再去搜寻与文件名同名的变量值
+     */
+    public function parse($fpath)
+    {
+        $rval = include($fpath);
+        if (!(FALSE === $rval || $rval === 1))
+        {
+            return $rval;
+        }
+
+        $fname = basename($fpath, '.php');
+        $ival = ${$fname};
+        if (isset($ival))
+        {
+            return $ival;
+        }
+        return NULL;
+    }
 
     /**
      * 初始化配置文件路径
-     * 
-     * @param $cpath string 配置文件或者文件夹路径
+     *
+     * @param string $cpath
+     *        配置文件或者文件夹路径
      * @return void
      */
     public function __construct($cpath)
-    {   
-        if (!file_exists($cpath))
+    {
+        if(is_array($cpath))
         {
-            throw new ConfigException('配置实例化错误:路径"' . $cpath . '"不存在!', E_ERROR);
+            $this->_paths = $cpath;
         }
-        $this->_path = $cpath;
-        $this->_isFile = is_file($cpath);
+        else
+        {
+            $this->_paths[] = $cpath;
+        }
+
+        foreach ($this->_paths as $path)
+        {
+            if(!file_exists($path))
+            {
+                throw new ConfigException('配置实例化错误:路径"' . $path . '"不存在!', E_ERROR);
+            }
+        }
+        $this->_initParser(); /* 初始化配置解析器 */
     }
-    
+
     /**
-     * 设置data
+     * 设置配置实例的初始化数据
      * @param array $data
      */
     public function setData(array $data)
     {
-        $this->_data = $data;
+        if($data)
+        {
+            $this->_data = $data;
+        }
     }
-    
     /**
-     * 获取data
-     * @return array
-     */
-    public function getData()
-    {
-        return $this->_data ?: [];
-    }
-     
-    /**
-     * 获取配置 ,例如 setting.a.b
-     * 
-     * @param $node string 节点名
-     * @return string
+     * 获取配置 ,例如 setting.a.b 配置节点以.分隔
+     *
+     * @param string $node
+     *        节点名
+     * @return mixed
      */
     public function get($node = NULL)
     {
@@ -115,19 +180,24 @@ class Configuration implements \ArrayAccess
             return $this->_data;
         }
         $data = $this->_data;
-        
         foreach ($nodes as $n)
         {
+            if (!is_array($data))
+            {
+                return NULL;
+            }
             $data = & $data[$n];
         }
         return $data;
     }
-    
+
     /**
      * 设置
-     * 
-     * @param $node string 节点设置
-     * @param $val string 值
+     *
+     * @param string $node
+     *        节点设置
+     * @param $val string
+     *        值
      * @return bool
      */
     public function set($node, $val)
@@ -138,35 +208,38 @@ class Configuration implements \ArrayAccess
         {
             $ret = & $ret[$n];
         }
-        $ret  = $val;
+        $ret = $val;
     }
 
     /**
      * 移除参数
-     * 
-     * @param $param string 参数名
+     *
+     * @param string $node
+     *        节点名
      * @return void
      */
     public function remove($node)
     {
-        return $this->set($node, NULL);
+        $this->set($node, NULL);
     }
 
     /**
      * 是否存在某个配置节点
-     * 
-     * @param string $param
+     *
+     * @param string $node
+     *        节点
      * @return bool
      */
     public function exists($node)
     {
-        return $this->get($node) ? true : false;
+        return (bool)$this->get($node);
     }
 
     /**
      * ArrayAccess接口必须函数，是否存在
-     * 
-     * @param $node string 解析参数
+     *
+     * @param string $node
+     *        解析参数
      * @return bool
      */
     public function offsetExists($node)
@@ -176,219 +249,215 @@ class Configuration implements \ArrayAccess
 
     /**
      * ArrayAccess接口必须函数，设置
-     * 
-     * @param $param string 解析参数
-     * @return array || null
+     *
+     * @param string $node
+     *        节点名
+     * @param mixed $value
+     *        值
+     *        解析参数
+     * @return void
      */
-    public function offsetSet($key, $value)
+    public function offsetSet($node, $value)
     {
-        return $this->set($key, $value);
+        return $this->set($node, $value);
     }
 
     /**
      * ArrayAccess接口必须函数，获取
-     * 
-     * @param $param string 解析参数
-     * @return array || null
+     *
+     * @param string $node
+     *        节点名
+     * @return mixed
      */
-    public function offsetGet($param)
+    public function offsetGet($node)
     {
-        return $this->get($param);
+        return $this->get($node);
     }
 
     /**
      * ArrayAccess接口必须函数 ,移除
-     * 
-     * @param $param string 解析参数
-     * @return array || null
+     *
+     * @param string $node
+     *        节点名
+     * @return bool
      */
-    public function offsetUnset($param)
+    public function offsetUnset($node)
     {
-        return $this->remove($param);
+        return $this->remove($node);
     }
-    
+
     /**
-     * 解析参数
-     * 
-     * @param string $param
+     * 解析节点 .分隔
+     *
+     * @param string $node
+     *        节点名
      * @return array
      */
-    protected function _parseNode($node) 
+    protected function _parseNode($node)
     {
-        $nodes = NULL == $node ? NULL : explode('.', $node);
         if (NULL === $this->_data)
         {
-            if ($this->_isFile)
-            {
-                $this->_data = $this->_loadDataFromFile($this->_path);
-            }
-            else
-            {
-                $this->_data = [];
-                $this->_getAllDataFromDir($this->_path, $this->_data);
-            }
+            $this->_initDataByPath();
         }
+        $nodes = NULL == $node ? NULL : explode('.', $node);
         return $nodes;
     }
-        
+
+    /**
+     * 初始化解析器 并默认注入PHP的解析器
+     *
+     * @return void
+     */
+    protected function _initParser()
+    {
+        foreach (self::$_parserMap as $ext => $cn)
+        {
+            $this->_parsers[$ext] = [
+                'className' => $cn,
+                'instance' => NULL
+            ];
+        }
+
+        if (!key_exists('php', $this->_parsers))
+        {
+            $this->_parsers['php'] = [
+                'className' => __CLASS__,
+                'instance' => $this
+            ];
+        }
+    }
+
+    /**
+     * 初始化并加载配置数据
+     *
+     * @return void
+     */
+    protected function _initDataByPath()
+    {
+        $this->_data = [];
+        $this->_parseAllDataFromPaths($this->_paths, $this->_data, TRUE);
+    }
+
     /**
      * 一次性获取所有数据 从文件夹
+     *
      * @param string $path
      * @param array $d
      * @return void
      */
-    protected function _getAllDataFromDir($path, & $d)
+    protected function _parseAllDataFromPaths($path, & $d, $isHideNode = FALSE)
     {
-        $files = scandir($path);
-        $paths  = [];
-        foreach($files as $fname)
+        $paths = $this->_parsePaths($path);
+        foreach ($paths as $node => $pathinfo)
+        {
+            if ($pathinfo[0])
+            {
+                $data = $this->_loadDataFromFile($pathinfo[0][0], $pathinfo[0][1]);
+                if ($data)
+                {
+                    if ($isHideNode)
+                    {
+                        $d = (is_array($d) && is_array($data)) ? array_merge($d, $data) : $data;
+                    }
+                    else
+                    {
+                        $d[$node] = (is_array($d[$node]) && is_array($data)) ? array_merge($d[$node], $data) : $data;
+                    }
+                }
+            }
+            if ($pathinfo[1])
+            {
+                if($isHideNode)
+                {
+                    $this->_parseAllDataFromPaths($pathinfo[1], $d);
+                }
+                else
+                {
+                    $this->_parseAllDataFromPaths($pathinfo[1], $d[$node]);
+                }
+            }
+        }
+    }
+
+    /**
+     * 解析配置路径
+     * @param array|string $path
+     * @return array|string|string[]|mixed[]
+     */
+    protected function _parsePaths($path)
+    {
+        $paths = [];
+        $files = is_array($path) ? $path : scandir($path);
+        $parentPath = is_array($path) ? '' : $path;
+        foreach ($files as $fname)
         {
             if ($fname == '.' || $fname == '..')
             {
                 continue;
             }
-            $fpath  = $path   . $fname;
-            $node = basename($fname, '.php');
-            if (is_file($fpath) && substr($fname, -4) == '.php')
+            $fpath = $parentPath . $fname;
+            $pathinfo = pathinfo($fpath);
+            $node = $pathinfo['filename'];
+            if (is_file($fpath) && key_exists($pathinfo['extension'], $this->_parsers))
             {
-                $paths[$node][0] = $fpath;
+
+                $paths[$node][0] = [$fpath, $pathinfo['extension']];
             }
-            elseif (is_dir($fpath))
+            if (is_dir($fpath))
             {
+
                 $paths[$node][1] = $fpath . '/';
             }
         }
-        
-        foreach($paths as $node => $path)
-        {  
-            if ($path[0])
-            {   
-                $data = $this->_loadDataFromFile($path[0]);
-                
-                if ($data)
-                {
-                    if (is_array($d[$node]) && is_array($data))
-                    {
-                        $d[$node] += $data;
-                    }
-                    else 
-                    {
-                        $d[$node] = $data;
-                    }
-                }
-            }
-            if($path[1])
-            {
-                $this->_getAllDataFromDir($path[1], $d[$node]);
-            }
-        }
+        return $paths;
     }
-    
     /**
-     * 根据文件路径获取数据
+     * 从文件加载配置数据
      *
-     * @param array $nodes 节点数组
-     * @return NULL or mixed
+     * @param string $fpath
+     * @param string $extname
+     * @return mixed
      */
-    protected function _loadDataFromDir($node, $nodes)
+    protected function _loadDataFromFile($fpath, $extname)
     {
-        if (NULL === $node || in_array($node, $this->_nodes))
-        {
-            return;
-        }
-        if (NULL === $this->_data)
-        {
-            $this->_data = [];
-        }
-        $nodeLength = count($nodes);
-        for ($i = 1; $i <= $nodeLength; $i++)
-        {
-            $fnodes = array_slice($nodes, 0, $i);
-            $pnodes = array_slice($nodes, $i);
-            
-            $fpath = $this->_path . join('/', $fnodes) . '.php';
-            if (!is_file($fpath))
-            {
-                continue;
-            }
-            
-            $isExists = $this->_searchDataFromDir($fnodes, $pnodes, $fpath);
-            if ($isExists)
-            {
-                return;
-            }
-        }
-     }
-    
-     /**
-      * 从文件夹中查找所在节点数据
-      * @param array 文件节点 $fnodes
-      * @param array 父节点 $pnodes
-      * @param string $fpath
-      * @return boolean
-      */
-    protected function _searchDataFromDir($fnodes, $pnodes, $fpath)
-    {
-        $nval = $this->_loadDataFromFile($fpath);
-        if (FALSE === $nval)
+        $parser = $this->_getParserByExt($extname);
+        if (!$parser)
         {
             return FALSE;
         }
-        
-        $data = & $this->_data;
-        foreach ($fnodes as $n)
+        if (!isset(self::$_filedata[$fpath]))
         {
-            $data = & $data[$n];
+            self::$_filedata[$fpath] = $parser->parse($fpath);
         }
-        $data = is_array($data) ? array_merge($data, $nval) : $nval;
-        foreach ($pnodes as $n)
+        return self::$_filedata[$fpath];
+    }
+
+    /**
+     * 根据文件扩展名获取解析器
+     *
+     * @param string $extname
+     * @throws ConfigException
+     * @return boolean|\ZeroAI\Config\Parser\IParser
+     */
+    protected function _getParserByExt($extname)
+    {
+        $parserData = $this->_parsers[$extname];
+        if (empty($parserData))
         {
-            if (!isset($data[$n]))
+            return FALSE;
+        }
+
+        if (!$parserData['instance'])
+        {
+            $className = $parserData['className'];
+            $instance = new $className();
+            if (!$instance instanceof IParser)
             {
-                return FALSE;
+                throw new ConfigException($className . '实例没有实现ICache接口!');
             }
-            $data = & $data[$n];
+            $parserData['instance'] = $instance;
         }
-        return TRUE;
-    }
-    
-    /**
-     * 从文件加载数据
-     * 
-     * @param string $path
-     */
-    protected function _loadDataFromFile($path)
-    {
-        $path = preg_replace('/\/+/', '/', $path);
-        if (!isset(self::$_fileVars[$path]))
-        {
-            self::$_fileVars[$path] = $this->_readConfigFromFile($path);
-        }
-        return self::$_fileVars[$path];
-    }
-    
-    /**
-     * 从文件路径读取数据
-     * 
-     * @param string $file
-     * @return mixed|boolean
-     */
-    protected function _readConfigFromFile($fpath)
-    {
-        $rval = include_once($fpath);
-        if (is_array($rval))
-        {
-            return $rval;
-        }
-        
-        $fname = basename($fpath, '.php');
-        
-        $ival = ${$fname};
-        if (is_array($ival))
-        {
-            return $ival;
-        }
-        return FALSE;
+        return $parserData['instance'];
     }
 }
 ?>

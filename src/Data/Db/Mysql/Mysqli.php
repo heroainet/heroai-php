@@ -1,27 +1,31 @@
 <?php
 /**
- * @Copyright (C), 2013-, King.
- * @Name Mysqli.php
- * @Author King
- * @Version 1.0 
+ *
+ * @copyright (C), 2013-, King.
+ * @name Mysqli.php
+ * @author King
+ * @version 1.0
  * @Date: 2013-11-28上午06:55:47
  * @Description MYSQL操作类 MYSQLI扩展
- * @Class List 
- * @Function 
- * @History <author> <time> <version > <desc> 
- king 2013-11-28上午06:55:47  1.0  第一次建立该文件
+ * @Class List
+ * @Function
+ * @History <author> <time> <version > <desc>
+ *          king 2013-11-28上午06:55:47 1.0 第一次建立该文件
+ *          King 2020年03月5日15:48:00 stable 1.0.01 审定稳定版本
  */
-namespace Tiny\Data\Db\Mysql;
+namespace ZeroAI\Data\Db\Mysql;
 
-use Tiny\Data\Db\IDb;
-use Tiny\Data\Data;
+use ZeroAI\Data\Db\IDb;
+use ZeroAI\Data\Db\Db;
+
 
 /**
+ * MYSQL的MYSQLI扩展
  *
- * @package
- *
+ * @package ZeroAI.Data.Db.Mysql
  * @since 2013-11-28上午06:56:26
  * @final 2013-11-28上午06:56:26
+ *        King 2020年03月5日15:48:00 stable 1.0.01 审定稳定版本
  */
 class Mysqli implements IDb
 {
@@ -32,105 +36,118 @@ class Mysqli implements IDb
      * @var int
      */
     const RELINK_MAX = 3;
-    
+
     /**
      * 重连的错误列表
      *
      * @var array
      */
-    const RELINK_LIST = [2006, 2013];
-    
+    const RELINK_ERRNO_LIST = [
+        2006,
+        2013
+    ];
+
     /**
      * 配置数组
-     * 
+     *
      * @var array
      */
-    protected $_conf;
+    protected $_policy;
 
     /**
      * 连接标示
-     * 
-     * @var mixed  null || mysql handle
+     *
+     * @var \Mysqli
      */
-    protected $_conn;
+    protected $_connection;
 
     /**
-     * 重连次数
-     * 
+     * 重连计数器
+     *
      * @var int
      */
-    protected $_relink = 0;
-    
+    protected $_relinkCounter = 0;
+
     /**
-     * QUERY返回对象
+     * 最后一次SQL返回的statement对象
      *
      * @var string statement
      */
-    protected $_statement = FALSE;
+    protected $_lastStatement = FALSE;
 
     /**
-     * 统一的构造函数
-     * 
-     * @param array $policy 默认为空函数
-     * @return
+     * 构造函数
+     *
+     * @param array $policy
+     *        默认为空函数
+     * @return void
      *
      */
-    public function __construct(array $conf = array())
+    public function __construct(array $policy = [])
     {
-        $this->_conf = $conf;
+        $this->_policy = $policy;
     }
 
     /**
-     * 触发查询事件
-     * 
-     * @param string $msg 查询内容
+     * 记录查询详情
+     *
+     * @param string $sql
+     *        查询内容
      * @param float $time
      * @return void
      */
-    public function onQuery($msg, $time)
+    public function onQuery($sql, $time)
     {
-        Data::addQuery($msg, $time, __CLASS__);
+        return Db::addQuery($sql, $time, __CLASS__);
     }
 
     /**
      * 错误发生事件
-     * 
-     * @param void
-     * @return void
+     *
+     * @param string $errmsg
+     *        错误信息
      */
-    public function onError($msg)
+    public function onError($errmsg)
     {
-        throw new MysqlException('%s %s:%s', $this->_conn->errno, $this->_conn->error, $msg);
+        if ($this->_connection)
+        {
+            $errmsg = sprintf('%s %s:%s', $this->_connection->errno, $this->_connection->error, $errmsg);
+        }
+        throw new MysqlException($errmsg);
     }
 
     /**
      * 开始连接
-     * 
-     * @param void
+     *
      * @return \Mysqli
      */
     public function getConnector()
     {
-        if (!$this->_conn)
+        if ($this->_connection)
         {
-            $mtime = microtime(TRUE);
-            $conf = $this->_conf;
-            $this->_conn = new \Mysqli($conf['host'], $conf['user'], $conf['password'], $conf['dbname'], $conf['port']);
-            if ($this->_conn->connect_error)
-            {
-                $this->onError('连接失败:' . $this->_conn->connect_error);
-                return;
-            }
-            $this->_conn->set_charset($conf['charset']);      
-            $this->onQuery(sprintf('连接...%s@%s:%d', $conf['user'], $conf['host'], $conf['port']), microtime(TRUE) - $mtime);
+            return $this->_connection;
         }
-        return $this->_conn;
+
+        // 计时开始
+        $interval = microtime(TRUE);
+
+        $policy = $this->_policy;
+        $this->_connection = new \Mysqli($policy['host'], $policy['user'], $policy['password'], $policy['dbname'], $policy['port']);
+        if ($this->_connection->connect_error)
+        {
+            throw new MysqlException('Db connection failed:' . $this->_connection->connect_error);
+        }
+        // 设置编码
+        $this->_connection->set_charset($policy['charset']);
+
+        // 连接计时
+        $this->onQuery(sprintf('db connection %s@%s:%d ...', $policy['user'], $policy['host'], $policy['port']), microtime(TRUE) - $interval);
+        return $this->_connection;
     }
 
     /**
      * 获取最近一条错误的内容
-     * 
-     * @param void
+     *
      * @return string
      */
     public function getErrorMSg()
@@ -140,8 +157,7 @@ class Mysqli implements IDb
 
     /**
      * 获取最近一条错误的标示
-     * 
-     * @param void
+     *
      * @return int
      */
     public function getErrorNo()
@@ -151,45 +167,50 @@ class Mysqli implements IDb
 
     /**
      * 关闭或者销毁实例和链接
-     * 
-     * @param void
+     *
      * @return void
      */
     public function close()
     {
-        $this->getConnector()->close();
-        unset($this->_conn);
+        if ($this->_connection)
+        {
+            $this->_connection->close();
+        }
+        $this->_connection = NULL;
     }
 
     /**
      * 重载方法：执行 SQL
-     * 
+     *
      * @param string $sql
      * @return mixed
      */
     public function query($sql)
     {
         $conn = $this->getConnector();
-        $this->_statement = $conn->query($sql);
-        if ($this->_statement !== FALSE)
+        $this->_lastStatement = $conn->query($sql);
+        if (FALSE !== $this->_lastStatement)
         {
-            $this->_relink = 0;
-            return $this->_statement;
+            $this->_relinkCounter = 0;
+            return $this->_lastStatement;
         }
-        if (in_array($conn->errno, self::RELINK_LIST) && $this->_relink < self::MAX_RELINK)
+
+        if (in_array($conn->errno, self::RELINK_ERRNO_LIST) && $this->_relinkCounter < self::RELINK_MAX)
         {
-            $this->_relink++;
+            $this->_relinkCounter++;
             $this->close();
             $this->getConnector();
             return $this->query($sql);
         }
-        $this->onError(sprintf('QUERY FAILD:%s'. $sql));
+        $this->onError(sprintf('QUERY FAILD:%s' . $sql));
+        return FALSE;
     }
-    
+
     /**
      * 执行写操作SQL
      *
-     * @param string $sql SQL语句
+     * @param string $sql
+     *        SQL语句
      * @return int rows
      */
     public function exec($sql)
@@ -203,9 +224,8 @@ class Mysqli implements IDb
     }
 
     /**
-     * 获取最后一条查询讯息
-     * 
-     * @param void
+     * 获取最后一条插入的ID
+     *
      * @return int
      */
     public function lastInsertId()
@@ -215,65 +235,64 @@ class Mysqli implements IDb
 
     /**
      * 返回调用当前查询后的结果集中的记录数
-     * 
-     * @param void
+     *
      * @return int
      */
     public function rowsCount()
     {
-        if ($this->_statement === FALSE)
+        if (!$this->_lastStatement)
         {
             return 0;
         }
-        if (is_bool($this->_statement))
+        if ($this->_lastStatement)
         {
             return $this->getConnector()->affected_rows;
         }
-        return $this->_statement->num_rows;
+        return $this->_lastStatement->num_rows;
     }
 
     /**
      * 查询并获取 一条结果集
-     * 
-     * @param string $sql 查询的SQL语句
-     * @return array || null
+     *
+     * @param string $sql
+     *        SQL语句
+     * @return array
      */
     public function fetch($sql)
     {
-        $mret = $this->query($sql);
-        if ($mret === TRUE)
+        $statement = $this->query($sql);
+        if (TRUE === $statement)
         {
             return [];
         }
-        $row = $mret->fetch_array(MYSQLI_ASSOC);
-        if ($row === NULL)
+        $row = $statement->fetch_array(MYSQLI_ASSOC);
+        if (NULL === $row)
         {
             return [];
         }
         return $row;
     }
-    
+
     /**
      * 查询并获取所有结果集
-     * 
-     * @param string $sql 查询的SQL语句
-     * @return array || null
+     *
+     * @param string $sql
+     *        SQL语句
+     * @return array
      */
     public function fetchAll($sql)
     {
-        $mret = $this->query($sql);
-        if ($mret === TRUE)
+        $statement = $this->query($sql);
+        if (TRUE === $statement)
         {
-            return  [];
+            return [];
         }
-        $rows = $mret->fetch_all(MYSQLI_ASSOC);
-        return $rows;
+        return $statement->fetch_all(MYSQLI_ASSOC);
     }
 
     /**
      * 开始事务
-     * 
-     * @param void
+     *
      * @return bool
      */
     public function beginTransaction()
@@ -283,8 +302,7 @@ class Mysqli implements IDb
 
     /**
      * 提交事务
-     * 
-     * @param void
+     *
      * @return bool
      */
     public function commit()
@@ -294,8 +312,7 @@ class Mysqli implements IDb
 
     /**
      * 事务回滚
-     * 
-     * @param void
+     *
      * @return bool
      */
     public function rollBack()
@@ -306,7 +323,6 @@ class Mysqli implements IDb
     /**
      * 析构函数 关闭连接
      *
-     * @param void
      * @return void
      */
     public function __destruct()

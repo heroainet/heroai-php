@@ -5,112 +5,130 @@
  * @name Pdo.php
  * @author King
  * @version 1.0
- *          @Date: 2013-11-28上午06:55:47
- *          @Description
- *          @Class List
- *          @Function
- *          @History <author> <time> <version > <desc>
+ * @Date: 2013-11-28上午06:55:47
+ * @Description
+ * @Class List
+ * @Function
+ * @History <author> <time> <version > <desc>
  *          king 2013-11-28上午06:55:47 1.0 第一次建立该文件
+ *          King 2020年03月5日15:48:00 stable 1.0.01 审定稳定版本
  */
-namespace Tiny\Data\Db\Mysql;
+namespace ZeroAI\Data\Db\Mysql;
 
-use Tiny\Data\Db\IDb;
-use Tiny\Data\Data;
+use ZeroAI\Data\Db\IDb;
+use ZeroAI\Data\Db\Db;
 
 /**
  * mysqld的PDO构造方式
- * 
- * @package Tiny.Data.Db.Mysql
+ *
+ * @package ZeroAI.Data.Db.Mysql
  * @since 2013-11-28上午06:56:26
  * @final 2013-11-28上午06:56:26
+ *        King 2020年03月5日15:48:00 stable 1.0.01 审定稳定版本
  */
 class Pdo implements IDb
 {
 
     /**
      * 最大重连次数
-     * 
+     *
      * @var int
      */
     const RELINK_MAX = 3;
 
     /**
      * 重连的错误列表
-     * 
+     *
      * @var array
      */
-    const RELINK_LIST = [2006 ,2013];
+    const RELINK_ERRNO_LIST = [
+        2006,
+        2013
+    ];
+
+    /**
+     * 配置参数
+     *
+     * @var array
+     */
+    protected $_options = [
+        \PDO::ATTR_CASE => \PDO::CASE_LOWER,
+        \PDO::ATTR_ERRMODE => \PDO::ERRMODE_WARNING
+    ];
+
+    /**
+     * 自动重连计数器
+     *
+     * @var int
+     */
+    protected $_relinkCounter = 0;
 
     /**
      * 配置数组
-     * 
+     *
      * @var array
-     * @access protected
      */
-    protected $_conf;
+    protected $_policy;
 
     /**
-     * 连接标示
-     * 
-     * @var PDO
-     * @access protected
+     * pdo连接
+     *
+     * @var resource pdo
      */
-    protected $_conn;
+    protected $_connection;
 
     /**
-     * 链接返回的PDOStatement
-     * 
+     * 最后一次SQL执行返回的PDOStatement
+     *
      * @var mixed PDOStatement
      */
-    protected $_statement;
-
-    /**
-     * 自动重连次数
-     * 
-     * @var int
-     */
-    protected $_relink = 0;
+    protected $_lastStatement;
 
     /**
      * 统一的构造函数
-     * 
-     * @param array $policy 默认为空函数
+     *
+     * @param array $policy
+     *        默认为空函数
      * @return
      *
      */
-    public function __construct(array $conf = array())
+    public function __construct(array $policy = [])
     {
-        $this->_conf = $conf;
+        $this->_policy = $policy;
     }
 
     /**
-     * 触发查询事件
-     * 
-     * @param string $msg 查询内容
-     * @param float $time 用时时长
+     * 查询事件
+     *
+     * @param string $msg
+     *        查询内容
+     * @param float $time
+     *        用时时长
      * @return void
      */
-    public function onQuery($msg, $time)
+    public function onQuery($sql, $time)
     {
-	   Data::addQuery($msg, $time, __CLASS__);
+        return Db::addQuery($sql, $time, __CLASS__);
     }
 
     /**
-     * 错误发生
-     * 
-     * @param void
+     * 错误事件
+     *
+     * @param string $errmsg
+     *        错误信息
      * @return void
      */
-    public function onError($msg)
+    public function onError($errmsg)
     {
         $info = $this->getConnector()->errorInfo();
-        throw new MysqlException(sprintf("%s ErrorNO:%d,%s", $msg, $info[0], $info[2]));
+        throw new MysqlException(sprintf("%s PDO ErrorNO:%d,%s", $errmsg, $info[0], $info[2]));
     }
 
     /**
      * 获取最近一条错误的内容
-     * 
-     * @param void
+     *
+     * @param
+     *        void
      * @return string
      */
     public function getErrorMSg()
@@ -120,8 +138,9 @@ class Pdo implements IDb
 
     /**
      * 获取最近一条错误的标示
-     * 
-     * @param void
+     *
+     * @param
+     *        void
      * @return int
      *
      */
@@ -132,106 +151,141 @@ class Pdo implements IDb
 
     /**
      * 获取连接
-     * 
-     * @param void
-     * @return bool
+     *
+     * @return \PDO
      */
     public function getConnector()
     {
-        if ($this->_conn)
+        if ($this->_connection)
         {
-            return $this->_conn;
+            return $this->_connection;
         }
-       
-        $conf = $this->_conf;
-        $opt = [];
-        $opt[\PDO::ATTR_CASE] = \PDO::CASE_LOWER;
-        $opt[\PDO::ATTR_ERRMODE] = \PDO::ERRMODE_WARNING;
-        $opt[\PDO::ATTR_TIMEOUT] = $conf['timeout'];        
-        if ($this->_policy['pconnect'])
+
+        $policy = $this->_policy;
+        $options = is_array($policy['options']) ? array_merge($this->_options, $policy['options']) : $this->_options;
+        if (isset($policy['timeout']))
         {
-            $opt[\PDO::ATTR_PERSISTENT] = TRUE;
+            $options[\PDO::ATTR_TIMEOUT] = $policy['timeout'];
         }
+        if ($policy['pconnect'])
+        {
+            $options[\PDO::ATTR_PERSISTENT] = TRUE;
+        }
+
+        $options[\PDO::ATTR_EMULATE_PREPARES] = TRUE;
         try
         {
+            // 连接计时开始
             $interval = microtime(TRUE);
-            $dns = sprintf('mysql:host=%s;port=%s;dbname=%s;charset=%s', $conf['host'], $conf['port'], $conf['dbname'],$conf['charset']);
-            $this->_conn = new \PDO($dns, $conf['user'], $conf['password'], $opt);
-            $this->onQuery(sprintf('连接...%s@%s:%s', $conf['user'], $conf['host'], $conf['port']), microtime(TRUE) - $interval);        
+            $dns = sprintf('mysql:host=%s;port=%s;dbname=%s;charset=%s', $policy['host'], $policy['port'], $policy['dbname'], $policy['charset']);
+            $this->_connection = new \PDO($dns, $policy['user'], $policy['password'], $options);
+
+            // 连接计时
+            $this->onQuery(sprintf('db connection %s@%s:%s ...', $policy['user'], $policy['host'], $policy['port']), microtime(TRUE) - $interval);
         }
         catch (\PDOException $e)
         {
-            throw new MysqlException($e->getMessage());
+            throw new MysqlException(sprintf("Db connection failed: " . $e->getMessage()));
         }
-        return $this->_conn;
+        return $this->_connection;
     }
 
     /**
      * 重载方法：执行 SQL
-     * 
+     *
      * @param string $sql
+     *        SQL语句
      * @return mixed PDOstatement || FALSE
      */
     public function query($sql)
     {
-        $interval = microtime(true);
+        // SQL执行计时开始
+        $interval = microtime(TRUE);
+
+        // 获取连接
         $conn = $this->getConnector();
-        $this->_statement = $conn->query($sql);
-        $this->onQuery($sql, microtime(true) - $interval);
-        if ($this->_statement)
+
+        /**
+         * PDO statement
+         *
+         * @var \PDOStatement $statement
+         */
+        $statement = $conn->query($sql);
+
+        // SQL执行统计
+        $this->onQuery($sql, microtime(TRUE) - $interval);
+
+        // 执行成功则返回
+        if (FALSE !== $statement)
         {
-            $this->_relink = 0;
-            return $this->_statement;
+            $this->_relinkCounter = 0;
+            $this->_lastStatement = $statement;
+            return $statement;
         }
-        $errNo = $conn->errorInfo()[1];
-        if (in_array($errNo, self::RELINK_LIST) && $this->_relink < self::RELINK_MAX)
+
+        // 执行不成功时，检测错误代码，如果是需要的错误代码，则进行重新连接
+        $errNO = $conn->errorInfo()[1];
+        if (in_array($errNO, self::RELINK_ERRNO_LIST) && ($this->_relinkCounter < self::RELINK_MAX))
         {
-            $this->_relink++;
-            unset($this->_conn);
+            $this->_relinkCounter++;
+            $this->close();
             $this->getConnector();
             return $this->query($sql);
-             
         }
-        $this->onError(sprintf('QUERY FAILD:%s'. $sql));
+
+        // 记录SQL错误
+        $this->onError(sprintf('QUERY FAILD:%s' . $sql));
         return FALSE;
     }
-    
+
     /**
-     * 执行写SQL
+     * 执行SQL 主要为写入操作
      *
-     * @param string $sql SQL语句
+     * @param string $sql
+     *        SQL语句
      * @return int || FALSE
      */
     public function exec($sql)
     {
-        $interval = microtime(true);
+        // SQL执行计时开始
+        $interval = microtime(TRUE);
+
+        // 获取PDO连接
         $conn = $this->getConnector();
-        $ret = $conn->query($sql);
-        $this->onQuery($sql, microtime(true) - $interval);
-        if ($ret !== FALSE)
-        { 
-            $this->_relink = 0;
-            return $ret;
-        }
-        
-        $errNo = $conn->errorInfo()[1];
-        if (in_array($errNo, self::RELINK_LIST) && $this->_relink < self::RELINK_MAX)
+
+        /**
+         * PDB query statement
+         *
+         * @var PDOStatement $statement
+         */
+        $count = $conn->exec($sql);
+
+        // SQL执行记录
+        $this->onQuery($sql, microtime(TRUE) - $interval);
+
+        if ($count !== FALSE)
         {
-            $this->_relink++;
+            $this->_relinkCounter = 0;
+            return TRUE;
+        }
+
+        $errNO = $conn->errorInfo()[1];
+        if (in_array($errNO, self::RELINK_ERRNO_LIST) && $this->_relinkCounter < self::RELINK_MAX)
+        {
+            $this->_relinkCounter++;
             $this->close();
             $this->getConnector();
             return $this->exec($sql);
-             
         }
-        
-        $this->onError(sprintf('EXEC FAILD:%s'. $sql));
+
+        // 记录SQL执行错误
+        $this->onError(sprintf('EXEC FAILD:%s', $sql));
         return FALSE;
     }
 
     /**
      * 获取插入语句的最后一个ID 必须有主键ID
-     * 
-     * @param void
+     *
      * @return int
      */
     public function lastInsertId()
@@ -239,26 +293,27 @@ class Pdo implements IDb
         return $this->getConnector()->lastInsertId();
     }
 
+
     /**
      * 返回调用当前查询后的结果集中的记录数
-     * 
-     * @param void
+     *
      * @return int
      */
     public function rowCount()
     {
-        if (!$this->_statement)
+        if (!$this->_lastStatement)
         {
             return 0;
         }
-        return  $this->_statement->rowCount();
+        return $this->_lastStatement->rowCount();
     }
 
     /**
      * 查询并获取 一条结果集
-     * 
-     * @param string $sql 查询的SQL语句
-     * @return array || null
+     *
+     * @param string $sql
+     *        查询的SQL语句
+     * @return array
      */
     public function fetch($sql)
     {
@@ -272,8 +327,9 @@ class Pdo implements IDb
 
     /**
      * 查询并获取所有结果集
-     * 
-     * @param string $sql 查询的SQL语句
+     *
+     * @param string $sql
+     *        查询的SQL语句
      * @return array || null
      */
     public function fetchAll($sql)
@@ -289,18 +345,20 @@ class Pdo implements IDb
     /**
      * 关闭或者销毁实例和链接
      *
-     * @param void
      * @return void
      */
     public function close()
     {
-        unset($this->_conn);
+        if ($this->_lastStatement)
+        {
+            $this->_lastStatement = NULL;
+        }
+        $this->_connection = NULL;
     }
-    
+
     /**
      * 开始事务
-     * 
-     * @param void
+     *
      * @return bool
      */
     public function beginTransaction()
@@ -310,8 +368,7 @@ class Pdo implements IDb
 
     /**
      * 提交事务
-     * 
-     * @param void
+     *
      * @return bool
      */
     public function commit()
@@ -321,8 +378,7 @@ class Pdo implements IDb
 
     /**
      * 事务回滚
-     * 
-     * @param void
+     *
      * @return bool
      */
     public function rollBack()

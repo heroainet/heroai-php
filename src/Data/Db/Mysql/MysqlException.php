@@ -1,24 +1,25 @@
-<?php 
+<?php
 /**
- * @Copyright (C), 2018-
- * @Name MysqlException.php
- * @Author  King
- * @Version Beta 1.0 
+ *
+ * @copyright (C), 2018-
+ * @name MysqlException.php
+ * @author King
+ * @version Beta 1.0
  * @Date Jan 29, 201811:21:44 AM
- * @Desc 
- * @History  King Jan 29, 2018 11:21:44 AM 0 第一次建立该文件             
+ * @History King Jan 29, 2018 11:21:44 AM 0 第一次建立该文件
+ *          King 2020年03月5日15:48:00 stable 1.0.01 审定稳定版本
  */
-namespace Tiny\Data\Db\Mysql;
+namespace ZeroAI\Data\Db\Mysql;
 
 /**
  * MYSQL异常
  *
- * @package Tiny.Data.Db.Mysql 
+ * @package ZeroAI.Data.Db.Mysql
  * @since Jan 29, 201811:22:14 AM
  * @final Jan 29, 201811:22:14 AM
+ *        King 2020年03月5日15:48:00 stable 1.0.01 审定稳定版本
  */
 class MysqlException extends \Exception
 {
-    
 }
 ?>

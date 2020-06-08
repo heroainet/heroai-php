@@ -1,67 +1,64 @@
 <?php
 /**
  *
- * @Copyright (C), 2011-, King.$i
- * @Name  memcached.php
- * @Author  King
- * @Version  Beta 1.0
+ * @copyright (C), 2011-, King.$i
+ * @name memcached.php
+ * @author King
+ * @version Beta 1.0
  * @Date: Fri Dec 16 22 48 00 CST 2011
  * @Description
  * @Class List
- *  	1.
- *  @Function List
- *   1.
- *  @History
- *      <author>    <time>                        <version >   <desc>
- *        King      Fri Dec 16 22:48:00 CST 2011  Beta 1.0           第一次建立该文件
- *
+ *        1.
+ * @Function List
+ *           1.
+ * @History <author> <time> <version > <desc>
+ *          King Fri Dec 16 22:48:00 CST 2011 Beta 1.0 第一次建立该文件
+ *          King 2020年02月24日17:09:00 stable 1.0.01 审定稳定版本
  */
-namespace Tiny\Cache;
+namespace ZeroAI\Cache;
 
-use Tiny\Data\Memcached\Schema;
-use Tiny\Tiny;
+use ZeroAI\ZeroAI;
+use ZeroAI\Data\Memcached\Memcached as MemcachedSchema;
+
 
 /**
  * Memcache缓存
- * 
- * @package Tiny.Cache
- * @since : Fri Dec 16 22 48 07 CST 2011
- * @final : Fri Dec 16 22 48 07 CST 2011
+ *
+ * @package ZeroAI.Cache
+ * @since Fri Dec 16 22 48 07 CST 2011
+ * @final Fri Dec 16 22 48 07 CST 2011
+ *        King 2020年02月24日17:09:00 stable 1.0.01 审定稳定版本
  */
 class Memcached implements ICache, \ArrayAccess
 {
 
     /**
-     * memcached连接实例
-     * 
-     * @var memcached
-     */
-    protected $_memcached;
-
-    /**
      * memcached操作实例
-     * 
-     * @var Schema
+     *
+     * @var MemcachedSchema
      */
     protected $_schema;
 
     /**
      * 缓存策略数组
-     * 
+     *
      * @var array
      */
-    protected $_policy = array('lifetime' => 3600);
+    protected $_policy = [
+        'lifetime' => 3600
+    ];
 
     /**
      * 初始化构造函数
-     * 
-     * @param array $policy 代理数组
+     *
+     * @param array $policy
+     *        代理数组
      * @return void
      */
-    function __construct(array $policy = array())
+    function __construct(array $policy = [])
     {
         $this->_policy = array_merge($this->_policy, $policy);
-        if (! $this->_policy['dataid'])
+        if (!$this->_policy['dataid'])
         {
             throw new CacheException('Cache.Memcached实例化失败:dataid没有设置');
         }
@@ -69,8 +66,7 @@ class Memcached implements ICache, \ArrayAccess
 
     /**
      * 获取策略数组
-     * 
-     * @param void
+     *
      * @return array
      */
     public function getPolicy()
@@ -79,34 +75,10 @@ class Memcached implements ICache, \ArrayAccess
     }
 
     /**
-     * 获取链接
-     * 
-     * @param void
-     * @return Schema
-     */
-    public function getConnector()
-    {
-        if ($this->_memcached)
-        {
-            return $this->_memcached;
-        }
-        
-        $data = Tiny::getApplication()->getData();
-        $dataId = $this->_policy['dataid'];
-        $schema = $data[$dataId];
-        if (! $schema instanceof Schema)
-        {
-            throw new CacheException("dataid:{$dataId}不是Tiny\Data\Memcached\Schema的实例");
-        }
-        $this->_schema = $schema;
-        $this->_memcached = $schema->getConnector();
-        return $this->_memcached;
-    }
-
-    /**
      * 获取缓存
-     * 
-     * @param string || array $key 获取缓存的键名 如果$key为数组 则可以批量获取缓存
+     *
+     * @param
+     *        string || array $key 获取缓存的键名 如果$key为数组 则可以批量获取缓存
      * @return mixed
      */
     public function get($key)
@@ -116,37 +88,42 @@ class Memcached implements ICache, \ArrayAccess
 
     /**
      * 设置缓存
-     * 
-     * @param string $key 缓存的键 $key为array时 可以批量设置缓存
-     * @param mixed $value 缓存的值 $key为array时 为设置生命周期的值
-     * @param int $life 缓存的生命周期
+     *
+     * @param string $key
+     *        缓存的键 $key为array时 可以批量设置缓存
+     * @param mixed $value
+     *        缓存的值 $key为array时 为设置生命周期的值
+     * @param int $life
+     *        缓存的生命周期
      * @return bool
      */
-    public function set($key, $value = null, $life = null)
+    public function set($key, $value = NULL, $life = NULL)
     {
         if (is_array($key))
         {
             $value = (int)$value ?: $this->_policy['lifetime'];
-            $life = null;
+            $life = NULL;
         }
         return $this->_getSchema()->set($key, $value, $life);
     }
 
     /**
      * 判断缓存是否存在
-     * 
-     * @param string $key 键
+     *
+     * @param string $key
+     *        键
      * @return bool
      */
     public function exists($key)
     {
-        return $this->_getSchema()->get($key) ? true : false;
+        return $this->_getSchema()->get($key) ? TRUE : FALSE;
     }
 
     /**
      * 移除缓存
-     * 
-     * @param string $key 缓存的键 $key为array时 可以批量删除
+     *
+     * @param string $key
+     *        缓存的键 $key为array时 可以批量删除
      * @return bool
      */
     public function remove($key)
@@ -156,8 +133,9 @@ class Memcached implements ICache, \ArrayAccess
 
     /**
      * 清除所有缓存
-     * 
-     * @param void
+     *
+     * @param
+     *        void
      * @return bool
      */
     public function clean()
@@ -167,9 +145,11 @@ class Memcached implements ICache, \ArrayAccess
 
     /**
      * 数组接口之设置
-     * 
-     * @param $key string 键
-     * @param $value mixed 值
+     *
+     * @param $key string
+     *        键
+     * @param $value mixed
+     *        值
      * @return
      *
      */
@@ -180,8 +160,9 @@ class Memcached implements ICache, \ArrayAccess
 
     /**
      * 数组接口之获取缓存实例
-     * 
-     * @param $key string  键
+     *
+     * @param $key string
+     *        键
      * @return array
      */
     public function offsetGet($key)
@@ -191,8 +172,9 @@ class Memcached implements ICache, \ArrayAccess
 
     /**
      * 数组接口之是否存在该值
-     * 
-     * @param $key string 键
+     *
+     * @param $key string
+     *        键
      * @return boolean
      */
     public function offsetExists($key)
@@ -202,8 +184,9 @@ class Memcached implements ICache, \ArrayAccess
 
     /**
      * 数组接口之移除该值
-     * 
-     * @param $key string 键
+     *
+     * @param $key string
+     *        键
      * @return void
      */
     public function offsetUnset($key)
@@ -212,30 +195,24 @@ class Memcached implements ICache, \ArrayAccess
     }
 
     /**
-     * 代理默认的Redis实例
-     * 
-     * @param string $method 默认实例的函数实例
-     * @param array $params 参数数组
-     * @return
-     *
-     */
-    public function __call($method, $params)
-    {
-        return call_user_func_array(array($this->getConnector() ,$method), $params);
-    }
-
-    /**
      * 获取memcached操作实例
-     * 
-     * @param void
-     * @return Schema
+     *
+     * @return MemcachedSchema
      */
     protected function _getSchema()
     {
-        if (! $this->_schema)
+        if ($this->_schema)
         {
-            $this->getConnector();
+            return $this->_schema;
         }
-        return $this->_schema;
+        $data = ZeroAI::getApplication()->getData();
+        $dataId = $this->_policy['dataid'];
+        $schema = $data[$dataId];
+        if (!$schema instanceof MemcachedSchema)
+        {
+            throw new CacheException("dataid:{$dataId}不是ZeroAI\Data\Memcached\Memcached的实例");
+        }
+        $this->_schema = $schema;
+        return $schema;
     }
 }

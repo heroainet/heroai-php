@@ -1,180 +1,201 @@
 <?php
 /**
- * @Copyright (C), 2011-, King.
- * @Name  FileCache.php
- * @Author  King
- * @Version  1.0
+ *
+ * @copyright (C), 2011-, King.
+ * @name FileCache.php
+ * @author King
+ * @version 1.0
  * @Date: Sat Nov 12 23 16 52 CST 2011
  * @Description
  * @Class List
- *  	1.File 文件缓存适配器
- *  @History
- *      <author>    <time>                        <version >   <desc>
- *        King      Mon Nov 14 00:08:21 CST 2011  Beta 1.0           第一次建立该文件
- *        King      2013-12-05                       1.0             重新修订该文件
+ *        1.File 文件缓存适配器
+ * @History <author> <time> <version > <desc>
+ *          King Mon Nov 14 00:08:21 CST 2011 Beta 1.0 第一次建立该文件
+ *          King 2013-12-05 1.0 重新修订该文件
+ *          King 2020年02月24日12:06:00 stable 1.0.01 审定稳定版本
  */
-namespace Tiny\Cache;
+namespace ZeroAI\Cache;
 
 /**
  * 文件缓存
- * 
- * @package Tiny.Cache
- * @since ：Mon Nov 14 00 08 38 CST 2011
- * @final :Mon Nov 14 00 08 38 CST 2011
+ *
+ * @package ZeroAI.Cache
+ * @since Mon Nov 14 00 08 38 CST 2011
+ * @final Mon Nov 14 00 08 38 CST 2011
+ *        King 2020年02月24日16:54:00 stable 1.0.01 审定
  */
 class File implements ICache, \ArrayAccess
 {
 
     /**
-     * 截取的文件头长度
-     * 
+     * 缓存的文件头长度
+     *
      * @var int
      */
-    const HEADER_LENGTH = 10;
+    const CACHE_HEADER_LENGTH = 10;
 
     /**
      * 缓存文件的扩展名
-     * 
+     *
      * @var string
      */
-    const EXT = '.txt';
+    const CACHE_FILE_EXT = '.txt';
 
     /**
      * 默认的服务器缓存策略
-     * 
+     *
      * @var array
-     * @access protected
      */
-    protected $_policy = array('lifetime' => 3600 ,'path' => '');
+    protected $_policy = [
+        'path' => NULL,
+        'lifetime' => 3600
+    ];
 
     /**
      * 初始化路径
-     * 
-     * @param $policy array 代理的策略数组
+     *
+     * @param array $policy
+     *        代理的策略数组
      * @return void
      *
      */
-    public function __construct(array $policy = array())
+    public function __construct(array $policy = [])
     {
         $policy = array_merge($this->_policy, $policy);
-        $policy['path'] = rtrim($policy['path'], '\\/');
-        if ($policy['path'] == "" || !is_dir($policy['path']))
+        $path = realpath($policy['path']);
+        if (!$path || !is_dir($path))
         {
-            throw new CacheException('Cache.File实例化失败：目录' . $policy['path'] . '不是一个已存在的目录');
+            throw new CacheException('Cache.File实例化失败：' . $policy['path'] . '不是一个已存在的目录');
         }
-        $policy['path'] .= DIRECTORY_SEPARATOR;
+        $policy['path'] = $path . DIRECTORY_SEPARATOR;
         $this->_policy = $policy;
     }
 
     /**
      * 设置缓存
-     * 
-     * @param string $key 缓存的键 $key为array时 可以批量设置缓存
-     * @param mixed $value 缓存的值 $key为array时 为设置生命周期的值
-     * @param int $life 缓存的生命周期
+     *
+     * @param string $key
+     *        缓存的键 $key为array时 可以批量设置缓存
+     * @param mixed $value
+     *        缓存的值 $key为array时 为设置生命周期的值
+     * @param int $life
+     *        缓存的生命周期
      * @return bool
      */
-    public function set($key, $value = null, $life = null)
+    public function set($key, $value = NULL, $life = 0)
     {
-        if (! $key)
+        if (!$key)
         {
-            return false;
+            return FALSE;
         }
+
         if (is_array($key))
         {
-            $life = $value;
+            $life = (int)$value;
         }
-        $life = is_null($life) ? $this->_policy['lifetime'] : (int) $life;
-        if (is_array($key))
+
+        if ($life <= 0)
         {
-            foreach ($key as $k => $v)
-            {
-                $this->_set($k, $v, $life);
-            }
-            return true;
+            $life = $this->_policy['lifetime'];
         }
-        return $this->_set($key, $value, $life);
+
+        if (!is_array($key))
+        {
+            return $this->_set($key, $value, $life);
+        }
+        foreach ($key as $k => $v)
+        {
+            $this->_set($k, $v, $life);
+        }
+        return TRUE;
     }
 
     /**
      * 获取缓存
-     * 
-     * @param string || array $key 获取缓存的键名 如果$key为数组 则可以批量获取缓存
+     *
+     * @param mixed $key
+     *        获取缓存的键名 如果$key为数组 则可以批量获取缓存
      * @return mixed
      */
     public function get($key)
     {
-        if (is_array($key))
+        if (!is_array($key))
         {
-            $ret = array();
-            foreach ($key as $k)
-            {
-                $ret[$k] = $this->_get($k);
-            }
-            return $ret;
+            return $this->_get($key);
         }
-        return $this->_get($key);
+        $ret = [];
+        foreach ($key as $k)
+        {
+            $ret[$k] = $this->_get($k);
+        }
+        return $ret;
     }
 
     /**
      * 判断缓存是否存在
-     * 
-     * @param string $key 键
+     *
+     * @param string $key
+     *        键
      * @return bool
      */
     public function exists($key)
     {
-        if (null == $key)
+        if (!$key)
         {
-            return false;
+            return FALSE;
         }
-        return $this->_get($key) ? true : false;
+        return $this->_get($key) ? TRUE : FALSE;
     }
 
     /**
      * 移除缓存
-     * 
-     * @param string $key 缓存的键 $key为array时 可以批量删除
+     *
+     * @param string $key
+     *        缓存的键 $key为array时 可以批量删除
      * @return bool
      */
     public function remove($key)
     {
-        if (null == trim($key))
+        if (NULL == trim($key))
         {
-            return false;
+            return FALSE;
         }
-        $filename = $this->_getFilePath($key);
-        if (! is_file($filename))
+        $filepath = $this->_getFilePath($key);
+        if (!is_file($filepath))
         {
-            return false;
+            return FALSE;
         }
-        return unlink($filename);
+        return unlink($filepath);
     }
 
     /**
      * 清理所有缓存
-     * 
-     * @param void
+     *
+     * @param
+     *        void
      * @return void
      */
     public function clean()
     {
         $path = $this->_policy['path'];
-        $dirs = scandir($path);
-        foreach ($dirs as $file)
+        $fpaths = scandir($path);
+        foreach ($fpaths as $fpath)
         {
-            if (self::EXT == substr($file, - 4))
+            if (self::CACHE_FILE_EXT != substr($fpath, -4))
             {
-                unlink($path . DIRECTORY_SEPARATOR . $file);
+                continue;
             }
+            unlink($path . DIRECTORY_SEPARATOR . $fpath);
         }
     }
 
     /**
      * 数组接口之设置
-     * 
-     * @param $key string 键
-     * @param $value mixed 值
+     *
+     * @param $key string
+     *        键
+     * @param $value mixed
+     *        值
      * @return
      *
      */
@@ -185,8 +206,9 @@ class File implements ICache, \ArrayAccess
 
     /**
      * 数组接口之获取缓存实例
-     * 
-     * @param $key string 键
+     *
+     * @param $key string
+     *        键
      * @return array
      */
     public function offsetGet($key)
@@ -196,19 +218,21 @@ class File implements ICache, \ArrayAccess
 
     /**
      * 数组接口之是否存在该值
-     * 
-     * @param $key string 键
+     *
+     * @param $key string
+     *        键
      * @return boolean
      */
     public function offsetExists($key)
     {
-        return (null == $this->get($key)) ? true : false;
+        return (NULL == $this->get($key)) ? TRUE : FALSE;
     }
 
     /**
      * 数组接口之移除该值
-     * 
-     * @param $key string 键
+     *
+     * @param $key string
+     *        键
      * @return void
      */
     public function offsetUnset($key)
@@ -218,74 +242,87 @@ class File implements ICache, \ArrayAccess
 
     /**
      * 设置缓存变量
-     * 
-     * @param $key string 键
-     * @param $value  mixed 值
-     * @param $life int 生命周期
+     *
+     * @param $key string
+     *        键
+     * @param $value mixed
+     *        值
+     * @param $life int
+     *        生命周期
      * @return bool
      */
     protected function _set($key, $value, $life)
     {
-        $header = time() + $life;
-        return $this->_writeFile($this->_getFilePath($key), $header . serialize($value));
+        $header = time() + (int)$life;
+        $content = serialize($value);
+        $data = $header . $content;
+        $fpath = $this->_getCachePath($key);
+        return $this->_writeFile($fpath, $data);
     }
 
     /**
      * 获取缓存变量
-     * 
-     * @param $key string || array 为数组时可一次获取多个变量
+     *
+     * @param $key string
+     *        || array 为数组时可一次获取多个变量
      * @return bool;
      */
     protected function _get($key)
     {
-        /* 构建文件路径 */
-        $filename = $this->_getFilePath($key);
-        if (! is_file($filename))
+        $fpath = $this->_getCachePath($key);
+        if (!is_file($fpath))
         {
-            return null;
+            return NULL;
         }
-        /* 获取文件内容 */
-        if (!$fp = fopen($filename, 'r'))
+        if (!$fh = fopen($fpath, 'r'))
         {
-            return null;
+            return NULL;
         }
-        
-        flock($fp , LOCK_SH);
-        $fsize = filesize($filename);
+
+        flock($fh, LOCK_SH);
+        $fsize = filesize($fpath);
         if ($fsize)
         {
-            $contents = fread($fp , $fsize);
+            $data = fread($fh, $fsize);
         }
-        flock($fp , LOCK_UN);
-        fclose($fp);
-        if (intval(substr($contents, 0, self::HEADER_LENGTH)) < time())
+
+        flock($fh, LOCK_UN);
+        fclose($fh);
+        $currentTime = time();
+        $header = (int)substr($data, 0, self::CACHE_HEADER_LENGTH);
+        if ($header < $currentTime)
         {
-            unlink($filename);
-            return null;
+            unlink($fpath);
+            return NULL;
         }
-        return unserialize(substr($contents, self::HEADER_LENGTH));
+        $content = substr($data, self::CACHE_HEADER_LENGTH);
+        $value = unserialize($content);
+        return $value;
     }
 
     /**
      * 获取文件缓存路径
-     * 
-     * @param $key string 键
+     *
+     * @param $key string
+     *        键
      * @return string
      */
-    protected function _getFilePath($key)
+    protected function _getCachePath($key)
     {
-        return $this->_policy['path'] . md5($key) . self::EXT;
+        return $this->_policy['path'] . md5($key) . self::CACHE_FILE_EXT;
     }
 
     /**
      * 写入文件
-     * 
-     * @param $filename string 文件路径
-     * @param $string string 写入的字符串
+     *
+     * @param $filename string
+     *        文件路径
+     * @param $string string
+     *        写入的字符串
      * @return bool
      */
-    protected function _writeFile($filename, $string)
+    protected function _writeFile($fpath, $data)
     {
-        return file_put_contents($filename, $string, LOCK_EX);
+        return file_put_contents($fpath, $data, LOCK_EX);
     }
 }
